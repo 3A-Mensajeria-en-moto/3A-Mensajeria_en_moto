@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mensajería de Barrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f4f7;--card:#fff;--ink:#101828;--sub:#5b6577;--line:#d9dee7;--brand:#1f4fd8;--on-brand:#fff;--err:#b42318;--err-bg:#fdecea;
+--e-PENDIENTE:#b26a00;--e-ASIGNADO:#2b5fd9;--e-RETIRADO:#7c4ddb;--e-EN_CAMINO:#0b7f86;--e-ENTREGADO:#1c7c46;--e-NO_ENTREGADO:#c0392b;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0f141c;--card:#18202b;--ink:#eef1f6;--sub:#a3adbd;--line:#2b3544;--brand:#6c93ff;--on-brand:#0f141c;--err:#ff9b8f;--err-bg:#3a1f1d;
+--e-PENDIENTE:#f0b254;--e-ASIGNADO:#7da2ff;--e-RETIRADO:#b497ff;--e-EN_CAMINO:#4fd1d9;--e-ENTREGADO:#5fd592;--e-NO_ENTREGADO:#ff8a7d;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.5 'Atkinson Hyperlegible',system-ui,sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.barra{max-width:760px;margin:auto;padding:.7rem 1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.marca{font-weight:700;font-size:1.15rem;margin-right:auto}
+.quien{color:var(--sub);font-size:.95rem}
+main{max-width:760px;margin:auto;padding:1rem}
+h2{font-size:1.3rem;margin:1.5rem 0 .75rem}
+button,input,select,textarea{font:inherit;color:inherit}
+button{min-height:44px;padding:.5rem 1rem;border-radius:8px;border:1.5px solid var(--brand);background:var(--brand);color:var(--on-brand);font-weight:700;cursor:pointer}
+button.sec{background:transparent;color:var(--brand)}
+button:disabled{opacity:.55;cursor:wait}
+button.act{min-height:52px;flex:1 1 12rem}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+input,select,textarea{width:100%;min-height:44px;padding:.5rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+label{display:block;font-weight:700;margin:.75rem 0 .25rem}
+fieldset{border:1px solid var(--line);border-radius:10px;margin:1rem 0;padding:0 1rem 1rem}
+legend{font-weight:700;padding:0 .4rem}
+summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:0 .75rem}
+@media (max-width:520px){.dos{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem}
+.login{max-width:420px;margin:10vh auto 0;padding:0 1rem}
+.login h1{font-size:1.6rem;margin:0 0 1rem}
+.demo{margin-top:1rem}.demo summary{font-size:1rem;margin:0}.demo button{margin:.6rem .5rem 0 0}
+.envio{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:12px;padding:1rem;margin-bottom:.85rem}
+.envio>button.sec{margin-top:.75rem}
+.e-PENDIENTE{--c:var(--e-PENDIENTE)}.e-ASIGNADO{--c:var(--e-ASIGNADO)}.e-RETIRADO{--c:var(--e-RETIRADO)}
+.e-EN_CAMINO{--c:var(--e-EN_CAMINO)}.e-ENTREGADO{--c:var(--e-ENTREGADO)}.e-NO_ENTREGADO{--c:var(--e-NO_ENTREGADO)}
+.cab{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.4rem}
+.cab b{font-size:1.1rem}
+.estado{padding:.1rem .65rem;border-radius:99px;font-weight:700;font-size:.9rem;color:var(--c);border:1.5px solid var(--c)}
+.dato{margin:.15rem 0}.dato span{color:var(--sub)}
+.fila{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.75rem}
+.fila select,.fila textarea{flex:2 1 12rem}
+.historial{list-style:none;margin:.75rem 0 0;padding:0 0 0 .9rem;border-left:2px solid var(--line)}
+.historial li{margin:.5rem 0;padding-left:.5rem}.historial small{display:block;color:var(--sub)}
+.chips{display:flex;gap:.5rem;flex-wrap:wrap}
+.chips button{min-height:40px;font-weight:400}
+.chips button[aria-pressed=true]{background:var(--brand);color:var(--on-brand);font-weight:700}
+.error{background:var(--err-bg);color:var(--err);padding:.6rem .8rem;border-radius:8px}
+.vacio{color:var(--sub);text-align:center;padding:2rem 1rem}
+.aviso{position:fixed;left:1rem;right:1rem;bottom:1rem;max-width:460px;margin:auto;background:var(--ink);color:var(--bg);padding:.8rem 1rem;border-radius:10px;z-index:9}
+.aviso.error{background:var(--err);color:var(--bg)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+// Dirección del backend. Cambiala si no corre en esta máquina (o definí window.API_URL antes de este script).
+const API_URL = (window.API_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '');
+// Muestra atajos con los usuarios de demo del backend. Poner en false antes de usarlo con datos reales.
+const MOSTRAR_CUENTAS_DEMO = true;
+
+const ESTADOS = { PENDIENTE: 'Pendiente', ASIGNADO: 'Asignado', RETIRADO: 'Retirado', EN_CAMINO: 'En camino', ENTREGADO: 'Entregado', NO_ENTREGADO: 'No entregado' };
+const ROLES = { CLIENTE: 'cliente', OPERADOR: 'operador', CADETE: 'cadete' };
+// Qué puede marcar el cadete desde cada estado (es solo una guía: el servidor valida igual).
+const ACCIONES = {
+  ASIGNADO: [['RETIRADO', 'Marcar retirado'], ['NO_ENTREGADO', 'No se pudo entregar']],
+  RETIRADO: [['EN_CAMINO', 'Salir en camino']],
+  EN_CAMINO: [['ENTREGADO', 'Marcar entregado'], ['NO_ENTREGADO', 'No se pudo entregar']],
+};
+
+let sesion = null, temporizador = null, avisoSesion = '';
+try { sesion = JSON.parse(sessionStorage.getItem('sesion')); } catch { /* sin almacenamiento: la sesión vive solo en memoria */ }
+const guardar = s => { sesion = s; try { s ? sessionStorage.setItem('sesion', JSON.stringify(s)) : sessionStorage.removeItem('sesion'); } catch { /* idem */ } };
+
+// Crea elementos DOM. Los textos se insertan como texto (nunca como HTML), así que no hay inyección.
+const h = (tag, attrs, ...hijos) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'class') el.className = v;
+    else if (v !== false && v != null) el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of hijos.flat()) if (c != null && c !== false) el.append(c.nodeType ? c : String(c));
+  return el;
+};
+const fecha = s => new Date(s).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+const dato = (k, v) => h('p', { class: 'dato' }, h('span', {}, k + ': '), v);
+
+function aviso(texto, error = false) {
+  const el = h('div', { class: 'aviso' + (error ? ' error' : ''), role: error ? 'alert' : 'status' }, texto);
+  document.body.append(el);
+  setTimeout(() => el.remove(), 5000);
+}
+
+async function api(ruta, { metodo = 'GET', cuerpo } = {}) {
+  let res;
+  try {
+    res = await fetch(API_URL + ruta, {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json', ...(sesion ? { Authorization: 'Bearer ' + sesion.token } : {}) },
+      body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+    });
+  } catch {
+    throw new Error('No se pudo conectar con el servidor. Revisá que el backend esté encendido en ' + API_URL + '.');
+  }
+  const datos = await res.json().catch(() => null);
+  if (!res.ok) {
+    if (res.status === 401 && sesion) { avisoSesion = 'Tu sesión venció. Ingresá de nuevo.'; guardar(null); render(); }
+    throw new Error(datos?.mensaje || 'Ocurrió un error inesperado.');
+  }
+  return datos;
+}
+
+// Bloquea el botón mientras corre la acción y muestra el resultado (o el error) en un aviso.
+async function accion(btn, fn) {
+  btn.disabled = true;
+  try { const msg = await fn(); if (msg) aviso(msg); }
+  catch (e) { aviso(e.message, true); }
+  finally { btn.disabled = false; }
+}
+
+function tarjeta(e, acciones) {
+  const detalle = h('div');
+  const btnHist = h('button', { class: 'sec', onclick: () => {
+    if (detalle.childNodes.length) { detalle.replaceChildren(); btnHist.textContent = 'Ver historial'; return; }
+    return accion(btnHist, async () => {
+      const d = await api('/envios/' + e.id);
+      detalle.append(h('ol', { class: 'historial' }, d.historial.map(c => h('li', {},
+        h('b', {}, ESTADOS[c.estado]),
+        h('small', {}, `${fecha(c.fecha)}, por ${c.realizadoPor.nombre}`),
+        c.observacion ? h('small', {}, c.observacion) : null))));
+      btnHist.textContent = 'Ocultar historial';
+    });
+  } }, 'Ver historial');
+  return h('article', { class: 'envio e-' + e.estado },
+    h('div', { class: 'cab' }, h('b', {}, 'Envío #' + e.id), h('span', { class: 'estado' }, ESTADOS[e.estado])),
+    dato('Retira en', `${e.origen.calle}, ${e.origen.localidad}`),
+    dato('Entrega en', `${e.destino.calle}, ${e.destino.localidad}`),
+    dato('Destinatario', e.destinatario.nombre + (e.destinatario.telefono ? ` (${e.destinatario.telefono})` : '')),
+    e.descripcion ? dato('Detalle', e.descripcion) : null,
+    e.cadete ? dato('Cadete', e.cadete.nombre) : null,
+    e.tiempoEstimadoMinutos ? dato('Tiempo estimado', e.tiempoEstimadoMinutos + ' min') : null,
+    dato('Creado', fecha(e.creadoEn)),
+    acciones, btnHist, detalle);
+}
+
+// Lista paginada de envíos. `armarRuta(pagina)` devuelve la URL; `accionesDe(envio, recargar)` agrega botones a cada tarjeta.
+function lista(armarRuta, vacio, accionesDe) {
+  const cont = h('div');
+  let pagina = 1;
+  async function cargar(reiniciar) {
+    if (reiniciar) pagina = 1;
+    try {
+      const r = await api(armarRuta(pagina));
+      if (reiniciar) cont.replaceChildren(); else cont.querySelector('.mas')?.remove();
+      if (!r.items.length && pagina === 1) cont.append(h('p', { class: 'vacio' }, vacio));
+      r.items.forEach(e => cont.append(tarjeta(e, accionesDe ? accionesDe(e, () => cargar(true)) : null)));
+      if (pagina * r.tamanio < r.total) cont.append(h('button', { class: 'sec mas', onclick: () => { pagina++; cargar(false); } }, 'Ver más envíos'));
+    } catch (err) { cont.replaceChildren(h('p', { class: 'error' }, err.message)); }
+  }
+  cont.recargar = () => cargar(true);
+  cargar(true);
+  return cont;
+}
+const consulta = (estados, pagina) => [...estados.map(e => 'estado=' + e), 'pagina=' + pagina, 'tamanio=10'].join('&');
+
+// Filtros por grupo de estados (chips) + lista; usado por operador y cadete.
+function conFiltros(grupos, vacio, accionesDe, alCargar) {
+  const cont = h('div');
+  let activo = 0;
+  function mostrar() {
+    const l = lista(p => '/envios?' + consulta(grupos[activo][1], p), vacio, accionesDe);
+    cont.replaceChildren(
+      h('div', { class: 'chips' }, grupos.map(([nombre], i) => h('button', { class: 'sec', 'aria-pressed': String(i === activo), onclick: () => { activo = i; mostrar(); } }, nombre))),
+      h('div', { class: 'fila' }, h('button', { class: 'sec', onclick: async () => { await alCargar?.(); l.recargar(); } }, 'Actualizar')),
+      l);
+  }
+  mostrar();
+  return cont;
+}
+
+/* ---------- Cliente ---------- */
+function vistaCliente() {
+  const campo = (id, etiqueta, req, max) => h('div', {}, h('label', { for: id }, etiqueta), h('input', { id, name: id, required: req, maxlength: max }));
+  const form = h('form', { class: 'panel' },
+    h('fieldset', {}, h('legend', {}, 'Dónde se retira'), campo('o_calle', 'Calle y número', true, 200),
+      h('div', { class: 'dos' }, campo('o_localidad', 'Localidad', true, 100), campo('o_ref', 'Referencias (timbre, piso)', false, 300))),
+    h('fieldset', {}, h('legend', {}, 'Dónde se entrega'), campo('d_calle', 'Calle y número', true, 200),
+      h('div', { class: 'dos' }, campo('d_localidad', 'Localidad', true, 100), campo('d_ref', 'Referencias (timbre, piso)', false, 300))),
+    h('fieldset', {}, h('legend', {}, 'Quién recibe'),
+      h('div', { class: 'dos' }, campo('n_nombre', 'Nombre', true, 100), campo('n_tel', 'Teléfono de contacto', false, 30)),
+      campo('descripcion', 'Qué se envía', false, 300)),
+    h('button', { type: 'submit' }, 'Crear envío'));
+  const mis = lista(p => `/envios?pagina=${p}&tamanio=10`, 'Todavía no creaste envíos. Completá el formulario para pedir el primero.');
+  form.addEventListener('submit', ev => {
+    ev.preventDefault();
+    const v = id => form.elements[id].value.trim() || undefined;
+    accion(form.querySelector('button'), async () => {
+      const e = await api('/envios', { metodo: 'POST', cuerpo: {
+        origen: { calle: v('o_calle'), localidad: v('o_localidad'), referencias: v('o_ref') },
+        destino: { calle: v('d_calle'), localidad: v('d_localidad'), referencias: v('d_ref') },
+        destinatario: { nombre: v('n_nombre'), telefono: v('n_tel') },
+        descripcion: v('descripcion') } });
+      form.reset(); mis.recargar();
+      return `Envío #${e.id} creado.`;
+    });
+  });
+  // El cliente solo mira el estado: se actualiza solo cada 30 segundos.
+  temporizador = setInterval(() => { if (mis.isConnected && !document.hidden) mis.recargar(); }, 30000);
+  return h('div', {}, h('details', { open: true }, h('summary', {}, 'Nuevo envío'), form), h('h2', {}, 'Mis envíos'), mis);
+}
+
+/* ---------- Operador ---------- */
+function vistaOperador() {
+  let cadetes = [];
+  const cargarCadetes = async () => { try { cadetes = await api('/cadetes'); } catch (e) { aviso(e.message, true); } };
+  const asignador = (e, recargar) => {
+    if (!cadetes.length) return h('p', { class: 'error' }, 'No hay cadetes activos para asignar.');
+    const sel = h('select', { 'aria-label': `Cadete para el envío #${e.id}` },
+      cadetes.map(c => h('option', { value: c.id, selected: e.cadete?.id === c.id }, `${c.nombre} (${c.enviosActivos} activos)`)));
+    const btn = h('button', { class: 'act', onclick: () => accion(btn, async () => {
+      await api(`/envios/${e.id}/asignacion`, { metodo: 'PUT', cuerpo: { cadeteId: Number(sel.value) } });
+      await cargarCadetes(); recargar();
+      return `Envío #${e.id} asignado.`;
+    }) }, e.estado === 'ASIGNADO' ? 'Reasignar' : 'Asignar cadete');
+    return h('div', { class: 'fila' }, sel, btn);
+  };
+  const grupos = [['Pendientes', ['PENDIENTE']], ['En curso', ['ASIGNADO', 'RETIRADO', 'EN_CAMINO']], ['Finalizados', ['ENTREGADO', 'NO_ENTREGADO']], ['Todos', []]];
+  const cont = h('div', {}, h('h2', {}, 'Envíos'));
+  cargarCadetes().then(() => cont.append(conFiltros(grupos, 'No hay envíos en esta categoría.',
+    (e, recargar) => (e.estado === 'PENDIENTE' || e.estado === 'ASIGNADO') ? asignador(e, recargar) : null, cargarCadetes)));
+  return cont;
+}
+
+/* ---------- Cadete ---------- */
+function botonesCadete(e, recargar) {
+  const siguientes = ACCIONES[e.estado];
+  if (!siguientes) return null;
+  const fila = h('div', { class: 'fila' });
+  const cambiar = (btn, estado, observacion) => accion(btn, async () => {
+    await api(`/envios/${e.id}/estados`, { metodo: 'POST', cuerpo: { estado, observacion } });
+    recargar();
+    return `Envío #${e.id}: ${ESTADOS[estado].toLowerCase()}.`;
+  });
+  function mostrarBotones() {
+    fila.replaceChildren(...siguientes.map(([estado, texto]) => {
+      const b = h('button', { class: 'act' + (estado === 'NO_ENTREGADO' ? ' sec' : ''), onclick: () => estado === 'NO_ENTREGADO' ? pedirMotivo() : cambiar(b, estado) }, texto);
+      return b;
+    }));
+  }
+  function pedirMotivo() {
+    const t = h('textarea', { 'aria-label': 'Motivo', rows: 3, maxlength: 300, placeholder: 'Contá qué pasó (por ejemplo: nadie atendió en el domicilio)' });
+    const ok = h('button', { class: 'act', onclick: () => t.value.trim() ? cambiar(ok, 'NO_ENTREGADO', t.value.trim()) : aviso('Escribí el motivo para continuar.', true) }, 'Confirmar no entregado');
+    fila.replaceChildren(t, ok, h('button', { class: 'act sec', onclick: mostrarBotones }, 'Cancelar'));
+    t.focus();
+  }
+  mostrarBotones();
+  return fila;
+}
+
+function vistaCadete() {
+  const grupos = [['Por entregar', ['ASIGNADO', 'RETIRADO', 'EN_CAMINO']], ['Terminados', ['ENTREGADO', 'NO_ENTREGADO']]];
+  return h('div', {}, h('h2', {}, 'Mis envíos'), conFiltros(grupos, 'No tenés envíos en esta categoría.', botonesCadete));
+}
+
+/* ---------- Ingreso y estructura ---------- */
+function vistaLogin() {
+  const msg = h('p', { class: 'error', role: 'alert', hidden: !avisoSesion }, avisoSesion);
+  avisoSesion = '';
+  const email = h('input', { id: 'email', type: 'email', required: true, autocomplete: 'username' });
+  const pass = h('input', { id: 'pass', type: 'password', required: true, minlength: 8, autocomplete: 'current-password' });
+  const btn = h('button', { type: 'submit' }, 'Ingresar');
+  const form = h('form', { class: 'panel', onsubmit: async ev => {
+    ev.preventDefault(); msg.hidden = true; btn.disabled = true;
+    try {
+      const r = await api('/auth/login', { metodo: 'POST', cuerpo: { email: email.value.trim(), password: pass.value } });
+      guardar({ token: r.token, usuario: r.usuario }); render();
+    } catch (err) { msg.textContent = err.message; msg.hidden = false; btn.disabled = false; }
+  } }, h('label', { for: 'email' }, 'Email'), email, h('label', { for: 'pass' }, 'Contraseña'), pass, h('div', { class: 'fila' }, btn), msg);
+  const cuentas = [['Operador', 'operador@mensajeria.com'], ['Cliente', 'contacto@estudioperez.com'], ['Cadete', 'juan@mensajeria.com']];
+  return h('div', { class: 'login' }, h('h1', {}, 'Mensajería de Barrio'), form,
+    MOSTRAR_CUENTAS_DEMO ? h('details', { class: 'panel demo' }, h('summary', {}, 'Cuentas de prueba'),
+      cuentas.map(([n, m]) => h('button', { type: 'button', class: 'sec', onclick: () => { email.value = m; pass.value = 'secreto123'; } }, n))) : null);
+}
+
+function salir() { guardar(null); render(); }
+
+function render() {
+  clearInterval(temporizador);
+  const app = document.getElementById('app');
+  app.replaceChildren();
+  if (!sesion) { app.append(vistaLogin()); return; }
+  const u = sesion.usuario;
+  const vista = { CLIENTE: vistaCliente, OPERADOR: vistaOperador, CADETE: vistaCadete }[u.rol];
+  app.append(
+    h('header', {}, h('div', { class: 'barra' },
+      h('span', { class: 'marca' }, 'Mensajería de Barrio'),
+      h('span', { class: 'quien' }, `${u.nombre} (${ROLES[u.rol]})`),
+      h('button', { class: 'sec', onclick: salir }, 'Salir'))),
+    h('main', {}, vista()));
+}
+render();
+</script>
+</body>
+</html>
