@@ -3,311 +3,368 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Si cambiás API_URL (más abajo), cambiá también el origen en connect-src. 'unsafe-eval' lo exige Vue para compilar plantillas en el navegador. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; connect-src http://localhost:8080; base-uri 'none'; form-action 'none'">
 <title>Mensajería de Barrio</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f2f4f7;--card:#fff;--ink:#101828;--sub:#5b6577;--line:#d9dee7;--brand:#1f4fd8;--on-brand:#fff;--err:#b42318;--err-bg:#fdecea;
 --e-PENDIENTE:#b26a00;--e-ASIGNADO:#2b5fd9;--e-RETIRADO:#7c4ddb;--e-EN_CAMINO:#0b7f86;--e-ENTREGADO:#1c7c46;--e-NO_ENTREGADO:#c0392b;color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#0f141c;--card:#18202b;--ink:#eef1f6;--sub:#a3adbd;--line:#2b3544;--brand:#6c93ff;--on-brand:#0f141c;--err:#ff9b8f;--err-bg:#3a1f1d;
 --e-PENDIENTE:#f0b254;--e-ASIGNADO:#7da2ff;--e-RETIRADO:#b497ff;--e-EN_CAMINO:#4fd1d9;--e-ENTREGADO:#5fd592;--e-NO_ENTREGADO:#ff8a7d;color-scheme:dark}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.5 'Atkinson Hyperlegible',system-ui,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
 header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
 .barra{max-width:760px;margin:auto;padding:.7rem 1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
-.marca{font-weight:700;font-size:1.15rem;margin-right:auto}
-.quien{color:var(--sub);font-size:.95rem}
+.marca{font-weight:700;font-size:1.15rem;margin-right:auto}.quien{color:var(--sub);font-size:.95rem}
 main{max-width:760px;margin:auto;padding:1rem}
 h2{font-size:1.3rem;margin:1.5rem 0 .75rem}
 button,input,select,textarea{font:inherit;color:inherit}
 button{min-height:44px;padding:.5rem 1rem;border-radius:8px;border:1.5px solid var(--brand);background:var(--brand);color:var(--on-brand);font-weight:700;cursor:pointer}
-button.sec{background:transparent;color:var(--brand)}
-button:disabled{opacity:.55;cursor:wait}
-button.act{min-height:52px;flex:1 1 12rem}
+button.sec{background:transparent;color:var(--brand)}button:disabled{opacity:.55;cursor:wait}button.act{min-height:52px;flex:1 1 12rem}
 :focus-visible{outline:3px solid var(--brand);outline-offset:2px}
 input,select,textarea{width:100%;min-height:44px;padding:.5rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--card)}
 label{display:block;font-weight:700;margin:.75rem 0 .25rem}
-fieldset{border:1px solid var(--line);border-radius:10px;margin:1rem 0;padding:0 1rem 1rem}
-legend{font-weight:700;padding:0 .4rem}
+fieldset{border:1px solid var(--line);border-radius:10px;margin:1rem 0;padding:0 1rem 1rem}legend{font-weight:700;padding:0 .4rem}
 summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
-.dos{display:grid;grid-template-columns:1fr 1fr;gap:0 .75rem}
-@media (max-width:520px){.dos{grid-template-columns:1fr}}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:0 .75rem}@media (max-width:520px){.dos{grid-template-columns:1fr}}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem}
-.login{max-width:420px;margin:10vh auto 0;padding:0 1rem}
-.login h1{font-size:1.6rem;margin:0 0 1rem}
+.login{max-width:420px;margin:10vh auto 0;padding:0 1rem}.login h1{font-size:1.6rem;margin:0 0 1rem}
 .demo{margin-top:1rem}.demo summary{font-size:1rem;margin:0}.demo button{margin:.6rem .5rem 0 0}
 .envio{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:12px;padding:1rem;margin-bottom:.85rem}
 .envio>button.sec{margin-top:.75rem}
 .e-PENDIENTE{--c:var(--e-PENDIENTE)}.e-ASIGNADO{--c:var(--e-ASIGNADO)}.e-RETIRADO{--c:var(--e-RETIRADO)}
 .e-EN_CAMINO{--c:var(--e-EN_CAMINO)}.e-ENTREGADO{--c:var(--e-ENTREGADO)}.e-NO_ENTREGADO{--c:var(--e-NO_ENTREGADO)}
-.cab{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.4rem}
-.cab b{font-size:1.1rem}
+.cab{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.4rem}.cab b{font-size:1.1rem}
 .estado{padding:.1rem .65rem;border-radius:99px;font-weight:700;font-size:.9rem;color:var(--c);border:1.5px solid var(--c)}
 .dato{margin:.15rem 0}.dato span{color:var(--sub)}
-.fila{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.75rem}
-.fila select,.fila textarea{flex:2 1 12rem}
+.fila{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.75rem}.fila select,.fila textarea{flex:2 1 12rem}
 .historial{list-style:none;margin:.75rem 0 0;padding:0 0 0 .9rem;border-left:2px solid var(--line)}
 .historial li{margin:.5rem 0;padding-left:.5rem}.historial small{display:block;color:var(--sub)}
-.chips{display:flex;gap:.5rem;flex-wrap:wrap}
-.chips button{min-height:40px;font-weight:400}
+.chips{display:flex;gap:.5rem;flex-wrap:wrap}.chips button{min-height:40px;font-weight:400}
 .chips button[aria-pressed=true]{background:var(--brand);color:var(--on-brand);font-weight:700}
 .error{background:var(--err-bg);color:var(--err);padding:.6rem .8rem;border-radius:8px}
 .vacio{color:var(--sub);text-align:center;padding:2rem 1rem}
-.aviso{position:fixed;left:1rem;right:1rem;bottom:1rem;max-width:460px;margin:auto;background:var(--ink);color:var(--bg);padding:.8rem 1rem;border-radius:10px;z-index:9}
-.aviso.error{background:var(--err);color:var(--bg)}
+.avisos{position:fixed;left:1rem;right:1rem;bottom:1rem;max-width:460px;margin:auto;display:grid;gap:.5rem;z-index:9}
+.aviso{background:var(--ink);color:var(--bg);padding:.8rem 1rem;border-radius:10px}.aviso.error{background:var(--err);color:var(--bg)}
 </style>
 </head>
 <body>
 <div id="app"></div>
+
+<!-- ============ VISTA: solo plantillas con enlaces al estado; ninguna lógica de negocio ============ -->
+<template id="t-raiz">
+  <div>
+    <vista-login v-if="!sesion.usuario"></vista-login>
+    <template v-else>
+      <header><div class="barra">
+        <span class="marca">Mensajería de Barrio</span>
+        <span class="quien">{{ sesion.usuario.nombre }} ({{ ROLES[sesion.usuario.rol] }})</span>
+        <button class="sec" @click="salir">Salir</button>
+      </div></header>
+      <main>
+        <vista-cliente v-if="sesion.usuario.rol === 'CLIENTE'"></vista-cliente>
+        <vista-operador v-else-if="sesion.usuario.rol === 'OPERADOR'"></vista-operador>
+        <vista-cadete v-else></vista-cadete>
+      </main>
+    </template>
+    <div class="avisos"><div v-for="a in ui.avisos" :key="a.id" class="aviso" :class="{ error: a.error }" :role="a.error ? 'alert' : 'status'">{{ a.texto }}</div></div>
+  </div>
+</template>
+
+<template id="t-login">
+  <div class="login">
+    <h1>Mensajería de Barrio</h1>
+    <form class="panel" @submit.prevent="entrar">
+      <label for="email">Email</label>
+      <input id="email" type="email" required autocomplete="username" v-model="form.email">
+      <label for="pass">Contraseña</label>
+      <input id="pass" type="password" required minlength="8" autocomplete="current-password" v-model="form.password">
+      <div class="fila"><button type="submit" :disabled="ui.ocupado">Ingresar</button></div>
+      <p class="error" role="alert" v-if="error">{{ error }}</p>
+    </form>
+    <details class="panel demo" v-if="demo"><summary>Cuentas de prueba</summary>
+      <button v-for="c in cuentas" :key="c[1]" type="button" class="sec" @click="usar(c[1])">{{ c[0] }}</button>
+    </details>
+  </div>
+</template>
+
+<template id="t-tarjeta">
+  <article class="envio" :class="'e-' + envio.estado">
+    <div class="cab"><b>Envío #{{ envio.id }}</b><span class="estado">{{ ESTADOS[envio.estado] }}</span></div>
+    <p class="dato"><span>Retira en: </span>{{ envio.origen.calle }}, {{ envio.origen.localidad }}</p>
+    <p class="dato"><span>Entrega en: </span>{{ envio.destino.calle }}, {{ envio.destino.localidad }}</p>
+    <p class="dato"><span>Destinatario: </span>{{ envio.destinatario.nombre }}<template v-if="envio.destinatario.telefono"> ({{ envio.destinatario.telefono }})</template></p>
+    <p class="dato" v-if="envio.descripcion"><span>Detalle: </span>{{ envio.descripcion }}</p>
+    <p class="dato" v-if="envio.cadete"><span>Cadete: </span>{{ envio.cadete.nombre }}</p>
+    <p class="dato" v-if="envio.tiempoEstimadoMinutos"><span>Tiempo estimado: </span>{{ envio.tiempoEstimadoMinutos }} min</p>
+    <p class="dato"><span>Creado: </span>{{ fecha(envio.creadoEn) }}</p>
+    <slot></slot>
+    <button class="sec" :disabled="ui.ocupado" @click="alternar">{{ historial ? 'Ocultar historial' : 'Ver historial' }}</button>
+    <ol class="historial" v-if="historial">
+      <li v-for="(c, i) in historial" :key="i">
+        <b>{{ ESTADOS[c.estado] }}</b>
+        <small>{{ fecha(c.fecha) }}, por {{ c.realizadoPor.nombre }}</small>
+        <small v-if="c.observacion">{{ c.observacion }}</small>
+      </li>
+    </ol>
+  </article>
+</template>
+
+<template id="t-panel">
+  <div>
+    <div class="chips" v-if="grupos"><button v-for="(g, i) in grupos" :key="g[0]" class="sec" :aria-pressed="String(i === activo)" @click="$emit('cambiar', i)">{{ g[0] }}</button></div>
+    <div class="fila"><button class="sec" :disabled="lista.cargando" @click="$emit('actualizar')">Actualizar</button></div>
+    <p class="error" v-if="lista.error">{{ lista.error }}</p>
+    <p class="vacio" v-else-if="!lista.items.length && !lista.cargando">{{ vacio }}</p>
+    <tarjeta-envio v-for="e in lista.items" :key="e.id" :envio="e"><slot name="acciones" :envio="e"></slot></tarjeta-envio>
+    <button class="sec" v-if="hayMas" :disabled="lista.cargando" @click="$emit('mas')">Ver más envíos</button>
+  </div>
+</template>
+
+<template id="t-cliente">
+  <div>
+    <details open><summary>Nuevo envío</summary>
+      <form class="panel" @submit.prevent="crear">
+        <fieldset v-for="d in direcciones" :key="d[0]"><legend>{{ d[1] }}</legend>
+          <label :for="d[0] + '_calle'">Calle y número</label>
+          <input :id="d[0] + '_calle'" required maxlength="200" v-model="form[d[0]].calle">
+          <div class="dos">
+            <div><label :for="d[0] + '_loc'">Localidad</label><input :id="d[0] + '_loc'" required maxlength="100" v-model="form[d[0]].localidad"></div>
+            <div><label :for="d[0] + '_ref'">Referencias (timbre, piso)</label><input :id="d[0] + '_ref'" maxlength="300" v-model="form[d[0]].referencias"></div>
+          </div>
+        </fieldset>
+        <fieldset><legend>Quién recibe</legend>
+          <div class="dos">
+            <div><label for="n_nombre">Nombre</label><input id="n_nombre" required maxlength="100" v-model="form.destinatario.nombre"></div>
+            <div><label for="n_tel">Teléfono de contacto</label><input id="n_tel" maxlength="30" v-model="form.destinatario.telefono"></div>
+          </div>
+          <label for="descripcion">Qué se envía</label>
+          <input id="descripcion" maxlength="300" v-model="form.descripcion">
+        </fieldset>
+        <button type="submit" :disabled="ui.ocupado">Crear envío</button>
+      </form>
+    </details>
+    <h2>Mis envíos</h2>
+    <panel-envios :lista="lista" :hay-mas="hayMas" vacio="Todavía no creaste envíos. Completá el formulario para pedir el primero." @actualizar="cargar" @mas="masEnvios"></panel-envios>
+  </div>
+</template>
+
+<template id="t-operador">
+  <div>
+    <h2>Envíos</h2>
+    <panel-envios :lista="lista" :grupos="grupos" :activo="grupo" :hay-mas="hayMas" vacio="No hay envíos en esta categoría." @cambiar="grupo = $event" @actualizar="actualizar" @mas="masEnvios">
+      <template #acciones="{ envio }">
+        <p class="error" v-if="puedeAsignar(envio) && !cadetes.length">No hay cadetes activos para asignar.</p>
+        <div class="fila" v-else-if="puedeAsignar(envio)">
+          <select :aria-label="'Cadete para el envío #' + envio.id" :value="elegido[envio.id] ?? envio.cadete?.id ?? cadetes[0].id" @change="elegido[envio.id] = Number($event.target.value)">
+            <option v-for="c in cadetes" :key="c.id" :value="c.id">{{ c.nombre }} ({{ c.enviosActivos }} activos)</option>
+          </select>
+          <button class="act" :disabled="ui.ocupado" @click="asignar(envio)">{{ envio.estado === 'ASIGNADO' ? 'Reasignar' : 'Asignar cadete' }}</button>
+        </div>
+      </template>
+    </panel-envios>
+  </div>
+</template>
+
+<template id="t-cadete">
+  <div>
+    <h2>Mis envíos</h2>
+    <panel-envios :lista="lista" :grupos="grupos" :activo="grupo" :hay-mas="hayMas" vacio="No tenés envíos en esta categoría." @cambiar="grupo = $event" @actualizar="cargar" @mas="masEnvios">
+      <template #acciones="{ envio }">
+        <div class="fila" v-if="motivo.id === envio.id">
+          <textarea aria-label="Motivo" rows="3" maxlength="300" placeholder="Contá qué pasó (por ejemplo: nadie atendió en el domicilio)" v-model="motivo.texto"></textarea>
+          <button class="act" :disabled="ui.ocupado" @click="confirmarNoEntrega(envio)">Confirmar no entregado</button>
+          <button class="act sec" @click="motivo.id = null">Cancelar</button>
+        </div>
+        <div class="fila" v-else-if="acciones(envio).length">
+          <button v-for="a in acciones(envio)" :key="a[0]" class="act" :class="{ sec: a[0] === 'NO_ENTREGADO' }" :disabled="ui.ocupado" @click="a[0] === 'NO_ENTREGADO' ? pedirMotivo(envio) : cambiar(envio, a[0])">{{ a[1] }}</button>
+        </div>
+      </template>
+    </panel-envios>
+  </div>
+</template>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.5.44/dist/vue.global.prod.js" integrity="sha384-tORx0bXmMnTC28EYQe1coaGZKSQupXQEYDBNex8xkzJ9iqUoNy9Y+VFBhVxi4kUr" crossorigin="anonymous"></script>
 <script>
 'use strict';
-// Dirección del backend. Cambiala si no corre en esta máquina (o definí window.API_URL antes de este script).
+const { createApp, reactive, ref, computed, watch, onMounted, onUnmounted } = Vue;
+
+/* ====================== MODELO ======================
+   Datos y reglas del negocio. No sabe nada de pantallas ni de Vue. */
 const API_URL = (window.API_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '');
-// Muestra atajos con los usuarios de demo del backend. Poner en false antes de usarlo con datos reales.
-const MOSTRAR_CUENTAS_DEMO = true;
+const MOSTRAR_CUENTAS_DEMO = true; // poner en false antes de usarlo con datos reales
 
 const ESTADOS = { PENDIENTE: 'Pendiente', ASIGNADO: 'Asignado', RETIRADO: 'Retirado', EN_CAMINO: 'En camino', ENTREGADO: 'Entregado', NO_ENTREGADO: 'No entregado' };
 const ROLES = { CLIENTE: 'cliente', OPERADOR: 'operador', CADETE: 'cadete' };
-// Qué puede marcar el cadete desde cada estado (es solo una guía: el servidor valida igual).
+// Qué puede marcar el cadete desde cada estado (guía para la pantalla: el servidor valida igual).
 const ACCIONES = {
   ASIGNADO: [['RETIRADO', 'Marcar retirado'], ['NO_ENTREGADO', 'No se pudo entregar']],
   RETIRADO: [['EN_CAMINO', 'Salir en camino']],
   EN_CAMINO: [['ENTREGADO', 'Marcar entregado'], ['NO_ENTREGADO', 'No se pudo entregar']],
 };
-
-let sesion = null, temporizador = null, avisoSesion = '';
-try { sesion = JSON.parse(sessionStorage.getItem('sesion')); } catch { /* sin almacenamiento: la sesión vive solo en memoria */ }
-const guardar = s => { sesion = s; try { s ? sessionStorage.setItem('sesion', JSON.stringify(s)) : sessionStorage.removeItem('sesion'); } catch { /* idem */ } };
-
-// Crea elementos DOM. Los textos se insertan como texto (nunca como HTML), así que no hay inyección.
-const h = (tag, attrs, ...hijos) => {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
-    else if (k === 'class') el.className = v;
-    else if (v !== false && v != null) el.setAttribute(k, v === true ? '' : v);
-  }
-  for (const c of hijos.flat()) if (c != null && c !== false) el.append(c.nodeType ? c : String(c));
-  return el;
+const GRUPOS = {
+  OPERADOR: [['Pendientes', ['PENDIENTE']], ['En curso', ['ASIGNADO', 'RETIRADO', 'EN_CAMINO']], ['Finalizados', ['ENTREGADO', 'NO_ENTREGADO']], ['Todos', []]],
+  CADETE: [['Por entregar', ['ASIGNADO', 'RETIRADO', 'EN_CAMINO']], ['Terminados', ['ENTREGADO', 'NO_ENTREGADO']]],
 };
 const fecha = s => new Date(s).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
-const dato = (k, v) => h('p', { class: 'dato' }, h('span', {}, k + ': '), v);
 
-function aviso(texto, error = false) {
-  const el = h('div', { class: 'aviso' + (error ? ' error' : ''), role: error ? 'alert' : 'status' }, texto);
-  document.body.append(el);
-  setTimeout(() => el.remove(), 5000);
-}
-
-async function api(ruta, { metodo = 'GET', cuerpo } = {}) {
-  let res;
-  try {
-    res = await fetch(API_URL + ruta, {
-      method: metodo,
-      headers: { 'Content-Type': 'application/json', ...(sesion ? { Authorization: 'Bearer ' + sesion.token } : {}) },
-      body: cuerpo ? JSON.stringify(cuerpo) : undefined,
-    });
-  } catch {
-    throw new Error('No se pudo conectar con el servidor. Revisá que el backend esté encendido en ' + API_URL + '.');
-  }
-  const datos = await res.json().catch(() => null);
-  if (!res.ok) {
-    if (res.status === 401 && sesion) { avisoSesion = 'Tu sesión venció. Ingresá de nuevo.'; guardar(null); render(); }
-    throw new Error(datos?.mensaje || 'Ocurrió un error inesperado.');
-  }
-  return datos;
-}
-
-// Bloquea el botón mientras corre la acción y muestra el resultado (o el error) en un aviso.
-async function accion(btn, fn) {
-  btn.disabled = true;
-  try { const msg = await fn(); if (msg) aviso(msg); }
-  catch (e) { aviso(e.message, true); }
-  finally { btn.disabled = false; }
-}
-
-function tarjeta(e, acciones) {
-  const detalle = h('div');
-  const btnHist = h('button', { class: 'sec', onclick: () => {
-    if (detalle.childNodes.length) { detalle.replaceChildren(); btnHist.textContent = 'Ver historial'; return; }
-    return accion(btnHist, async () => {
-      const d = await api('/envios/' + e.id);
-      detalle.append(h('ol', { class: 'historial' }, d.historial.map(c => h('li', {},
-        h('b', {}, ESTADOS[c.estado]),
-        h('small', {}, `${fecha(c.fecha)}, por ${c.realizadoPor.nombre}`),
-        c.observacion ? h('small', {}, c.observacion) : null))));
-      btnHist.textContent = 'Ocultar historial';
-    });
-  } }, 'Ver historial');
-  return h('article', { class: 'envio e-' + e.estado },
-    h('div', { class: 'cab' }, h('b', {}, 'Envío #' + e.id), h('span', { class: 'estado' }, ESTADOS[e.estado])),
-    dato('Retira en', `${e.origen.calle}, ${e.origen.localidad}`),
-    dato('Entrega en', `${e.destino.calle}, ${e.destino.localidad}`),
-    dato('Destinatario', e.destinatario.nombre + (e.destinatario.telefono ? ` (${e.destinatario.telefono})` : '')),
-    e.descripcion ? dato('Detalle', e.descripcion) : null,
-    e.cadete ? dato('Cadete', e.cadete.nombre) : null,
-    e.tiempoEstimadoMinutos ? dato('Tiempo estimado', e.tiempoEstimadoMinutos + ' min') : null,
-    dato('Creado', fecha(e.creadoEn)),
-    acciones, btnHist, detalle);
-}
-
-// Lista paginada de envíos. `armarRuta(pagina)` devuelve la URL; `accionesDe(envio, recargar)` agrega botones a cada tarjeta.
-function lista(armarRuta, vacio, accionesDe) {
-  const cont = h('div');
-  let pagina = 1;
-  async function cargar(reiniciar) {
-    if (reiniciar) pagina = 1;
+const Api = {
+  token: null,
+  alExpirar: () => {},
+  async llamar(ruta, { metodo = 'GET', cuerpo } = {}) {
+    let res;
     try {
-      const r = await api(armarRuta(pagina));
-      if (reiniciar) cont.replaceChildren(); else cont.querySelector('.mas')?.remove();
-      if (!r.items.length && pagina === 1) cont.append(h('p', { class: 'vacio' }, vacio));
-      r.items.forEach(e => cont.append(tarjeta(e, accionesDe ? accionesDe(e, () => cargar(true)) : null)));
-      if (pagina * r.tamanio < r.total) cont.append(h('button', { class: 'sec mas', onclick: () => { pagina++; cargar(false); } }, 'Ver más envíos'));
-    } catch (err) { cont.replaceChildren(h('p', { class: 'error' }, err.message)); }
-  }
-  cont.recargar = () => cargar(true);
-  cargar(true);
-  return cont;
-}
-const consulta = (estados, pagina) => [...estados.map(e => 'estado=' + e), 'pagina=' + pagina, 'tamanio=10'].join('&');
+      res = await fetch(API_URL + ruta, {
+        method: metodo,
+        headers: { 'Content-Type': 'application/json', ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}) },
+        body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+      });
+    } catch { throw new Error('No se pudo conectar con el servidor. Revisá que el backend esté encendido en ' + API_URL + '.'); }
+    const datos = await res.json().catch(() => null);
+    if (!res.ok) {
+      if (res.status === 401 && this.token) this.alExpirar();
+      throw new Error(datos?.mensaje || 'Ocurrió un error inesperado.');
+    }
+    return datos;
+  },
+  login: (email, password) => Api.llamar('/auth/login', { metodo: 'POST', cuerpo: { email, password } }),
+  envios: consulta => Api.llamar('/envios?' + consulta),
+  envio: id => Api.llamar('/envios/' + id),
+  crearEnvio: cuerpo => Api.llamar('/envios', { metodo: 'POST', cuerpo }),
+  asignar: (id, cadeteId) => Api.llamar(`/envios/${id}/asignacion`, { metodo: 'PUT', cuerpo: { cadeteId } }),
+  cambiarEstado: (id, estado, observacion) => Api.llamar(`/envios/${id}/estados`, { metodo: 'POST', cuerpo: { estado, observacion } }),
+  cadetes: () => Api.llamar('/cadetes'),
+};
 
-// Filtros por grupo de estados (chips) + lista; usado por operador y cadete.
-function conFiltros(grupos, vacio, accionesDe, alCargar) {
-  const cont = h('div');
-  let activo = 0;
-  function mostrar() {
-    const l = lista(p => '/envios?' + consulta(grupos[activo][1], p), vacio, accionesDe);
-    cont.replaceChildren(
-      h('div', { class: 'chips' }, grupos.map(([nombre], i) => h('button', { class: 'sec', 'aria-pressed': String(i === activo), onclick: () => { activo = i; mostrar(); } }, nombre))),
-      h('div', { class: 'fila' }, h('button', { class: 'sec', onclick: async () => { await alCargar?.(); l.recargar(); } }, 'Actualizar')),
-      l);
-  }
-  mostrar();
-  return cont;
+/* ====================== VISTAMODELO ======================
+   Estado observable y acciones de cada pantalla. No toca el DOM: la Vista se enlaza a lo que se devuelve acá. */
+const ui = reactive({ avisos: [], ocupado: false, seq: 0 });
+function avisar(texto, error = false) {
+  const id = ++ui.seq;
+  ui.avisos.push({ id, texto, error });
+  setTimeout(() => { ui.avisos = ui.avisos.filter(a => a.id !== id); }, 5000);
+}
+// Ejecuta una acción de a una por vez; si devuelve un texto lo muestra como aviso, y si falla muestra el error.
+async function ejecutar(fn, alError = e => avisar(e.message, true)) {
+  if (ui.ocupado) return;
+  ui.ocupado = true;
+  try { const msg = await fn(); if (msg) avisar(msg); } catch (e) { alError(e); } finally { ui.ocupado = false; }
 }
 
-/* ---------- Cliente ---------- */
-function vistaCliente() {
-  const campo = (id, etiqueta, req, max) => h('div', {}, h('label', { for: id }, etiqueta), h('input', { id, name: id, required: req, maxlength: max }));
-  const form = h('form', { class: 'panel' },
-    h('fieldset', {}, h('legend', {}, 'Dónde se retira'), campo('o_calle', 'Calle y número', true, 200),
-      h('div', { class: 'dos' }, campo('o_localidad', 'Localidad', true, 100), campo('o_ref', 'Referencias (timbre, piso)', false, 300))),
-    h('fieldset', {}, h('legend', {}, 'Dónde se entrega'), campo('d_calle', 'Calle y número', true, 200),
-      h('div', { class: 'dos' }, campo('d_localidad', 'Localidad', true, 100), campo('d_ref', 'Referencias (timbre, piso)', false, 300))),
-    h('fieldset', {}, h('legend', {}, 'Quién recibe'),
-      h('div', { class: 'dos' }, campo('n_nombre', 'Nombre', true, 100), campo('n_tel', 'Teléfono de contacto', false, 30)),
-      campo('descripcion', 'Qué se envía', false, 300)),
-    h('button', { type: 'submit' }, 'Crear envío'));
-  const mis = lista(p => `/envios?pagina=${p}&tamanio=10`, 'Todavía no creaste envíos. Completá el formulario para pedir el primero.');
-  form.addEventListener('submit', ev => {
-    ev.preventDefault();
-    const v = id => form.elements[id].value.trim() || undefined;
-    accion(form.querySelector('button'), async () => {
-      const e = await api('/envios', { metodo: 'POST', cuerpo: {
-        origen: { calle: v('o_calle'), localidad: v('o_localidad'), referencias: v('o_ref') },
-        destino: { calle: v('d_calle'), localidad: v('d_localidad'), referencias: v('d_ref') },
-        destinatario: { nombre: v('n_nombre'), telefono: v('n_tel') },
-        descripcion: v('descripcion') } });
-      form.reset(); mis.recargar();
-      return `Envío #${e.id} creado.`;
-    });
+let guardada = null;
+try { guardada = JSON.parse(sessionStorage.getItem('sesion')); } catch { /* sin almacenamiento: la sesión vive solo en memoria */ }
+const sesion = reactive({ token: guardada?.token ?? null, usuario: guardada?.usuario ?? null, aviso: '' });
+Api.token = sesion.token;
+function persistir() {
+  Api.token = sesion.token;
+  try { sesion.token ? sessionStorage.setItem('sesion', JSON.stringify({ token: sesion.token, usuario: sesion.usuario })) : sessionStorage.removeItem('sesion'); } catch { /* idem */ }
+}
+function salir() { sesion.token = null; sesion.usuario = null; persistir(); }
+Api.alExpirar = () => { sesion.aviso = 'Tu sesión venció. Ingresá de nuevo.'; salir(); };
+
+function useLogin() {
+  const form = reactive({ email: '', password: '' });
+  const error = ref(sesion.aviso);
+  sesion.aviso = '';
+  const entrar = () => { error.value = ''; return ejecutar(async () => {
+    const r = await Api.login(form.email.trim(), form.password);
+    sesion.token = r.token; sesion.usuario = r.usuario; persistir();
+  }, e => { error.value = e.message; }); };
+  const cuentas = [['Operador', 'operador@mensajeria.com'], ['Cliente', 'contacto@estudioperez.com'], ['Cadete', 'juan@mensajeria.com']];
+  const usar = email => { form.email = email; form.password = 'secreto123'; };
+  return { form, error, entrar, cuentas, usar, demo: MOSTRAR_CUENTAS_DEMO };
+}
+
+// Lista paginada de envíos, reutilizada por las tres pantallas. `params()` devuelve los filtros de la consulta.
+function useListaEnvios(params) {
+  const lista = reactive({ items: [], pagina: 1, total: 0, tamanio: 10, cargando: false, error: '' });
+  async function cargar(reiniciar = true) {
+    if (reiniciar) lista.pagina = 1;
+    lista.cargando = true; lista.error = '';
+    try {
+      const r = await Api.envios([...params(), 'pagina=' + lista.pagina, 'tamanio=' + lista.tamanio].join('&'));
+      lista.items = reiniciar ? r.items : [...lista.items, ...r.items];
+      lista.total = r.total;
+    } catch (e) { lista.error = e.message; } finally { lista.cargando = false; }
+  }
+  const hayMas = computed(() => lista.pagina * lista.tamanio < lista.total);
+  const masEnvios = () => { lista.pagina++; return cargar(false); };
+  return { lista, cargar, hayMas, masEnvios };
+}
+const porEstados = estados => estados.map(e => 'estado=' + e);
+
+function useCliente() {
+  const nuevo = () => ({ origen: { calle: '', localidad: '', referencias: '' }, destino: { calle: '', localidad: '', referencias: '' }, destinatario: { nombre: '', telefono: '' }, descripcion: '' });
+  const form = reactive(nuevo());
+  const direcciones = [['origen', 'Dónde se retira'], ['destino', 'Dónde se entrega']];
+  const { lista, cargar, hayMas, masEnvios } = useListaEnvios(() => []);
+  const limpio = t => t.trim() || undefined;
+  const dir = d => ({ calle: d.calle.trim(), localidad: d.localidad.trim(), referencias: limpio(d.referencias) });
+  const crear = () => ejecutar(async () => {
+    const e = await Api.crearEnvio({ origen: dir(form.origen), destino: dir(form.destino),
+      destinatario: { nombre: form.destinatario.nombre.trim(), telefono: limpio(form.destinatario.telefono) }, descripcion: limpio(form.descripcion) });
+    Object.assign(form, nuevo());
+    await cargar();
+    return `Envío #${e.id} creado.`;
   });
-  // El cliente solo mira el estado: se actualiza solo cada 30 segundos.
-  temporizador = setInterval(() => { if (mis.isConnected && !document.hidden) mis.recargar(); }, 30000);
-  return h('div', {}, h('details', { open: true }, h('summary', {}, 'Nuevo envío'), form), h('h2', {}, 'Mis envíos'), mis);
+  // El cliente solo mira el estado: la lista se actualiza sola cada 30 segundos.
+  let timer;
+  onMounted(() => { cargar(); timer = setInterval(() => { if (!document.hidden) cargar(); }, 30000); });
+  onUnmounted(() => clearInterval(timer));
+  return { form, direcciones, lista, hayMas, cargar, masEnvios, crear };
 }
 
-/* ---------- Operador ---------- */
-function vistaOperador() {
-  let cadetes = [];
-  const cargarCadetes = async () => { try { cadetes = await api('/cadetes'); } catch (e) { aviso(e.message, true); } };
-  const asignador = (e, recargar) => {
-    if (!cadetes.length) return h('p', { class: 'error' }, 'No hay cadetes activos para asignar.');
-    const sel = h('select', { 'aria-label': `Cadete para el envío #${e.id}` },
-      cadetes.map(c => h('option', { value: c.id, selected: e.cadete?.id === c.id }, `${c.nombre} (${c.enviosActivos} activos)`)));
-    const btn = h('button', { class: 'act', onclick: () => accion(btn, async () => {
-      await api(`/envios/${e.id}/asignacion`, { metodo: 'PUT', cuerpo: { cadeteId: Number(sel.value) } });
-      await cargarCadetes(); recargar();
-      return `Envío #${e.id} asignado.`;
-    }) }, e.estado === 'ASIGNADO' ? 'Reasignar' : 'Asignar cadete');
-    return h('div', { class: 'fila' }, sel, btn);
-  };
-  const grupos = [['Pendientes', ['PENDIENTE']], ['En curso', ['ASIGNADO', 'RETIRADO', 'EN_CAMINO']], ['Finalizados', ['ENTREGADO', 'NO_ENTREGADO']], ['Todos', []]];
-  const cont = h('div', {}, h('h2', {}, 'Envíos'));
-  cargarCadetes().then(() => cont.append(conFiltros(grupos, 'No hay envíos en esta categoría.',
-    (e, recargar) => (e.estado === 'PENDIENTE' || e.estado === 'ASIGNADO') ? asignador(e, recargar) : null, cargarCadetes)));
-  return cont;
+function useOperador() {
+  const grupos = GRUPOS.OPERADOR, grupo = ref(0), cadetes = ref([]), elegido = reactive({});
+  const { lista, cargar, hayMas, masEnvios } = useListaEnvios(() => porEstados(grupos[grupo.value][1]));
+  const cargarCadetes = async () => { try { cadetes.value = await Api.cadetes(); } catch (e) { avisar(e.message, true); } };
+  const actualizar = async () => { await cargarCadetes(); await cargar(); };
+  const puedeAsignar = e => e.estado === 'PENDIENTE' || e.estado === 'ASIGNADO';
+  const asignar = e => ejecutar(async () => {
+    await Api.asignar(e.id, Number(elegido[e.id] ?? e.cadete?.id ?? cadetes.value[0].id));
+    delete elegido[e.id];
+    await actualizar();
+    return `Envío #${e.id} asignado.`;
+  });
+  watch(grupo, () => cargar());
+  onMounted(actualizar);
+  return { grupos, grupo, cadetes, elegido, lista, hayMas, masEnvios, actualizar, puedeAsignar, asignar };
 }
 
-/* ---------- Cadete ---------- */
-function botonesCadete(e, recargar) {
-  const siguientes = ACCIONES[e.estado];
-  if (!siguientes) return null;
-  const fila = h('div', { class: 'fila' });
-  const cambiar = (btn, estado, observacion) => accion(btn, async () => {
-    await api(`/envios/${e.id}/estados`, { metodo: 'POST', cuerpo: { estado, observacion } });
-    recargar();
+function useCadete() {
+  const grupos = GRUPOS.CADETE, grupo = ref(0), motivo = reactive({ id: null, texto: '' });
+  const { lista, cargar, hayMas, masEnvios } = useListaEnvios(() => porEstados(grupos[grupo.value][1]));
+  const acciones = e => ACCIONES[e.estado] ?? [];
+  const cambiar = (e, estado, observacion) => ejecutar(async () => {
+    await Api.cambiarEstado(e.id, estado, observacion);
+    motivo.id = null; motivo.texto = '';
+    await cargar();
     return `Envío #${e.id}: ${ESTADOS[estado].toLowerCase()}.`;
   });
-  function mostrarBotones() {
-    fila.replaceChildren(...siguientes.map(([estado, texto]) => {
-      const b = h('button', { class: 'act' + (estado === 'NO_ENTREGADO' ? ' sec' : ''), onclick: () => estado === 'NO_ENTREGADO' ? pedirMotivo() : cambiar(b, estado) }, texto);
-      return b;
-    }));
-  }
-  function pedirMotivo() {
-    const t = h('textarea', { 'aria-label': 'Motivo', rows: 3, maxlength: 300, placeholder: 'Contá qué pasó (por ejemplo: nadie atendió en el domicilio)' });
-    const ok = h('button', { class: 'act', onclick: () => t.value.trim() ? cambiar(ok, 'NO_ENTREGADO', t.value.trim()) : aviso('Escribí el motivo para continuar.', true) }, 'Confirmar no entregado');
-    fila.replaceChildren(t, ok, h('button', { class: 'act sec', onclick: mostrarBotones }, 'Cancelar'));
-    t.focus();
-  }
-  mostrarBotones();
-  return fila;
+  const pedirMotivo = e => { motivo.id = e.id; motivo.texto = ''; };
+  const confirmarNoEntrega = e => motivo.texto.trim() ? cambiar(e, 'NO_ENTREGADO', motivo.texto.trim()) : avisar('Escribí el motivo para continuar.', true);
+  watch(grupo, () => cargar());
+  onMounted(cargar);
+  return { grupos, grupo, lista, hayMas, masEnvios, cargar, motivo, acciones, cambiar, pedirMotivo, confirmarNoEntrega };
 }
 
-function vistaCadete() {
-  const grupos = [['Por entregar', ['ASIGNADO', 'RETIRADO', 'EN_CAMINO']], ['Terminados', ['ENTREGADO', 'NO_ENTREGADO']]];
-  return h('div', {}, h('h2', {}, 'Mis envíos'), conFiltros(grupos, 'No tenés envíos en esta categoría.', botonesCadete));
-}
-
-/* ---------- Ingreso y estructura ---------- */
-function vistaLogin() {
-  const msg = h('p', { class: 'error', role: 'alert', hidden: !avisoSesion }, avisoSesion);
-  avisoSesion = '';
-  const email = h('input', { id: 'email', type: 'email', required: true, autocomplete: 'username' });
-  const pass = h('input', { id: 'pass', type: 'password', required: true, minlength: 8, autocomplete: 'current-password' });
-  const btn = h('button', { type: 'submit' }, 'Ingresar');
-  const form = h('form', { class: 'panel', onsubmit: async ev => {
-    ev.preventDefault(); msg.hidden = true; btn.disabled = true;
-    try {
-      const r = await api('/auth/login', { metodo: 'POST', cuerpo: { email: email.value.trim(), password: pass.value } });
-      guardar({ token: r.token, usuario: r.usuario }); render();
-    } catch (err) { msg.textContent = err.message; msg.hidden = false; btn.disabled = false; }
-  } }, h('label', { for: 'email' }, 'Email'), email, h('label', { for: 'pass' }, 'Contraseña'), pass, h('div', { class: 'fila' }, btn), msg);
-  const cuentas = [['Operador', 'operador@mensajeria.com'], ['Cliente', 'contacto@estudioperez.com'], ['Cadete', 'juan@mensajeria.com']];
-  return h('div', { class: 'login' }, h('h1', {}, 'Mensajería de Barrio'), form,
-    MOSTRAR_CUENTAS_DEMO ? h('details', { class: 'panel demo' }, h('summary', {}, 'Cuentas de prueba'),
-      cuentas.map(([n, m]) => h('button', { type: 'button', class: 'sec', onclick: () => { email.value = m; pass.value = 'secreto123'; } }, n))) : null);
-}
-
-function salir() { guardar(null); render(); }
-
-function render() {
-  clearInterval(temporizador);
-  const app = document.getElementById('app');
-  app.replaceChildren();
-  if (!sesion) { app.append(vistaLogin()); return; }
-  const u = sesion.usuario;
-  const vista = { CLIENTE: vistaCliente, OPERADOR: vistaOperador, CADETE: vistaCadete }[u.rol];
-  app.append(
-    h('header', {}, h('div', { class: 'barra' },
-      h('span', { class: 'marca' }, 'Mensajería de Barrio'),
-      h('span', { class: 'quien' }, `${u.nombre} (${ROLES[u.rol]})`),
-      h('button', { class: 'sec', onclick: salir }, 'Salir'))),
-    h('main', {}, vista()));
-}
-render();
+/* ====================== VISTA: componentes que unen cada plantilla con su vistamodelo ====================== */
+const app = createApp({ template: '#t-raiz', setup: () => ({ sesion, salir }) });
+Object.assign(app.config.globalProperties, { ui, ESTADOS, ROLES, fecha });
+app.component('vista-login', { template: '#t-login', setup: useLogin });
+app.component('vista-cliente', { template: '#t-cliente', setup: useCliente });
+app.component('vista-operador', { template: '#t-operador', setup: useOperador });
+app.component('vista-cadete', { template: '#t-cadete', setup: useCadete });
+app.component('panel-envios', { template: '#t-panel', props: ['lista', 'grupos', 'activo', 'vacio', 'hayMas'], emits: ['cambiar', 'actualizar', 'mas'] });
+app.component('tarjeta-envio', {
+  template: '#t-tarjeta', props: ['envio'],
+  setup(props) {
+    const historial = ref(null);
+    const alternar = () => historial.value ? (historial.value = null) : ejecutar(async () => { historial.value = (await Api.envio(props.envio.id)).historial; });
+    return { historial, alternar };
+  },
+});
+app.mount('#app');
 </script>
 </body>
 </html>
