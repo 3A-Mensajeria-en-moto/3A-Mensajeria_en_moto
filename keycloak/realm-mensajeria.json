@@ -79,6 +79,33 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "mensajeria-k6",
+      "name": "Pruebas de carga (k6) - SOLO DESARROLLO",
+      "description": "Permite pedir tokens con usuario y contraseña (password grant) para los scripts de k6, sin navegador. No usar ni habilitar en producción.",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email", "basic"],
+      "protocolMappers": [
+        {
+          "name": "audiencia-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "mensajeria-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "users": [

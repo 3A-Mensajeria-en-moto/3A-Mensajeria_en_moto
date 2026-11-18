@@ -41,6 +41,29 @@ el estado "Asignado" y le llega un mail (verlo en Mailpit) → el **cadete** lo 
 - Para volver al estado inicial (o si se edita el JSON del realm, que solo se importa si el realm no existe):
   `docker compose down -v` y de nuevo `docker compose up --build`.
 
+## Prueba del caso de uso mínimo (k6)
+
+[`k6/caso-uso-minimo.js`](k6/caso-uso-minimo.js) recorre, contra el sistema levantado: el cliente crea un envío → el
+operador ve los pendientes y los cadetes → lo asigna a Juan → el cliente ve el estado ASIGNADO (con cadete e historial)
+→ al cliente le llega el mail (lo busca en Mailpit).
+
+Requiere [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) instalado y el sistema levantado:
+
+```bash
+k6 run k6/caso-uso-minimo.js                          # un recorrido
+k6 run --vus 10 --duration 1m k6/caso-uso-minimo.js   # carga: 10 usuarios simultáneos durante 1 minuto
+```
+
+Si Mailpit no está en el 8025, agregar `-e MAILPIT_URL=http://localhost:8026` (o `-e VERIFICAR_MAIL=false` para no
+chequear mails). Pasa si **todos** los recorridos terminan bien y el p95 de la API es < 500 ms.
+
+El login se hace una vez por rol con el cliente `mensajeria-k6` del realm, que acepta usuario y contraseña directamente
+(password grant). Existe solo para estas pruebas: en producción no se crearía.
+
+La carga es a propósito muy superior a la real (~80 envíos por día): con 10 usuarios durante 1 minuto se completaron
+2640 recorridos (con su mail) sin errores y con p95 de la API ≈ 11 ms. Deja esos envíos en la base: para una demo
+limpia, `docker compose down -v`.
+
 ## Autenticación (Keycloak, OpenID Connect)
 
 - El frontend usa `keycloak-js` con **Authorization Code + PKCE** (cliente público `mensajeria-frontend`).
