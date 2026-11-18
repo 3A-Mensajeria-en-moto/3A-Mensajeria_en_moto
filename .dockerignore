@@ -1,0 +1,9 @@
+node_modules
+dist
+data
+test
+.env
+*.sqlite*
+keycloak
+frontend
+mensajeria-frontend.html

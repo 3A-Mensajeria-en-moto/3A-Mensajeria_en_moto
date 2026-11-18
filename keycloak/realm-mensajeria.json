@@ -1,0 +1,146 @@
+{
+  "realm": "mensajeria",
+  "displayName": "Mensajería de Barrio",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": true,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "bruteForceProtected": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["es", "en"],
+  "defaultLocale": "es",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 36000,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@mensajeria.local",
+    "fromDisplayName": "Mensajería de Barrio",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "roles": {
+    "realm": [
+      { "name": "CLIENTE", "description": "Crea envíos y consulta su estado." },
+      { "name": "OPERADOR", "description": "Asigna envíos a cadetes." },
+      { "name": "CADETE", "description": "Actualiza el estado de los envíos que tiene asignados." },
+      { "name": "offline_access", "description": "${role_offline-access}" },
+      { "name": "uma_authorization", "description": "${role_uma_authorization}" },
+      {
+        "name": "default-roles-mensajeria",
+        "description": "Roles que recibe todo usuario nuevo (incluye CLIENTE).",
+        "composite": true,
+        "composites": { "realm": ["offline_access", "uma_authorization", "CLIENTE"] }
+      }
+    ]
+  },
+  "defaultRole": { "name": "default-roles-mensajeria" },
+  "clients": [
+    {
+      "clientId": "mensajeria-frontend",
+      "name": "Mensajería de Barrio (web)",
+      "description": "SPA pública: Authorization Code + PKCE, sin secreto.",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "rootUrl": "http://localhost:3000",
+      "baseUrl": "/",
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email", "basic"],
+      "optionalClientScopes": ["offline_access"],
+      "protocolMappers": [
+        {
+          "name": "audiencia-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "mensajeria-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "operador@mensajeria.com",
+      "email": "operador@mensajeria.com",
+      "firstName": "Operador",
+      "lastName": "Central",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "secreto123", "temporary": false }],
+      "realmRoles": ["default-roles-mensajeria", "OPERADOR"]
+    },
+    {
+      "username": "contacto@estudioperez.com",
+      "email": "contacto@estudioperez.com",
+      "firstName": "Estudio Contable",
+      "lastName": "Pérez",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "secreto123", "temporary": false }],
+      "realmRoles": ["default-roles-mensajeria"]
+    },
+    {
+      "username": "libreria@norte.com",
+      "email": "libreria@norte.com",
+      "firstName": "Librería",
+      "lastName": "Norte",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "secreto123", "temporary": false }],
+      "realmRoles": ["default-roles-mensajeria"]
+    },
+    {
+      "username": "juan@mensajeria.com",
+      "email": "juan@mensajeria.com",
+      "firstName": "Juan",
+      "lastName": "Pérez",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "secreto123", "temporary": false }],
+      "realmRoles": ["default-roles-mensajeria", "CADETE"]
+    },
+    {
+      "username": "lucia@mensajeria.com",
+      "email": "lucia@mensajeria.com",
+      "firstName": "Lucía",
+      "lastName": "Fernández",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "secreto123", "temporary": false }],
+      "realmRoles": ["default-roles-mensajeria", "CADETE"]
+    },
+    {
+      "username": "marcos@mensajeria.com",
+      "email": "marcos@mensajeria.com",
+      "firstName": "Marcos",
+      "lastName": "Díaz",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "secreto123", "temporary": false }],
+      "realmRoles": ["default-roles-mensajeria", "CADETE"]
+    }
+  ]
+}

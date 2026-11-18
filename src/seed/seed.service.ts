@@ -3,12 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { Rol } from '../usuarios/rol';
 import { UsuariosService } from '../usuarios/usuarios.service';
 
-const PASSWORD_DEMO = 'secreto123';
-
 /**
- * Carga usuarios de ejemplo si la base está vacía y SEED_DEMO != 'false'.
- * SOLO PARA DESARROLLO: en producción poner SEED_DEMO=false y crear los usuarios
- * reales con `npm run usuario:crear`.
+ * Carga los perfiles de ejemplo si la base está vacía y SEED_DEMO != 'false'.
+ * Las cuentas (con contraseña "secreto123") están en el realm de Keycloak
+ * (keycloak/realm-mensajeria.json); acá solo van los datos de negocio (teléfono,
+ * y que los cadetes aparezcan en la lista aunque todavía no hayan entrado nunca).
+ * Cada perfil se vincula con su cuenta de Keycloak por email en el primer login.
+ * SOLO PARA DESARROLLO: en producción poner SEED_DEMO=false.
  */
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
@@ -31,9 +32,9 @@ export class SeedService implements OnApplicationBootstrap {
       { nombre: 'Lucía Fernández', email: 'lucia@mensajeria.com', rol: Rol.CADETE, telefono: '+54 11 4444-1122' },
       { nombre: 'Marcos Díaz', email: 'marcos@mensajeria.com', rol: Rol.CADETE, telefono: '+54 11 4444-3344' },
     ];
-    for (const u of demo) await this.usuarios.crear({ ...u, password: PASSWORD_DEMO });
+    for (const u of demo) await this.usuarios.crear(u);
     this.logger.warn(
-      `Se cargaron ${demo.length} usuarios de DEMO (contraseña "${PASSWORD_DEMO}"). No usar en producción.`,
+      `Se cargaron ${demo.length} perfiles de DEMO (las cuentas están en el realm de Keycloak). No usar en producción.`,
     );
   }
 }

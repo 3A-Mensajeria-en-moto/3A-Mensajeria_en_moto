@@ -1,0 +1,95 @@
+# Levanta todo el proyecto:  docker compose up --build
+#
+#   Frontend ........ http://localhost:3000
+#   API ............. http://localhost:8080/api/v1
+#   Keycloak ........ http://localhost:8180   (consola de admin: admin / admin)
+#   Mailpit ......... http://localhost:8025   (todos los mails: verificación, reseteo de clave, avisos de envíos)
+#
+# La base es SQLite (archivo dentro del volumen backend-data), por eso no hay servicio de base de datos.
+# Credenciales y configuración son SOLO PARA DESARROLLO.
+
+name: mensajeria
+
+services:
+  mailpit:
+    image: axllent/mailpit:v1.27.10
+    ports:
+      # Interfaz web; el SMTP (1025) queda solo en la red interna.
+      # Si el 8025 está ocupado: MAILPIT_PORT=8026 docker compose up
+      - "${MAILPIT_PORT:-8025}:8025"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.2
+    # --import-realm carga keycloak/realm-mensajeria.json la primera vez (si el realm ya existe, lo saltea).
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # URL pública: es la que ve el navegador y la que queda como "iss" en los tokens.
+      KC_HOSTNAME: http://localhost:8180
+      # Permite que el backend use la URL interna (http://keycloak:8080) para bajar las claves.
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8180:8080"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./keycloak/realm-mensajeria.json:/opt/keycloak/data/import/realm-mensajeria.json:ro
+    healthcheck:
+      # La imagen no trae curl: se pide /health/ready al puerto de administración (9000) con bash.
+      test:
+        - CMD
+        - bash
+        - -c
+        - "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q ' 200 '"
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 20s
+    depends_on:
+      - mailpit
+
+  backend:
+    build: .
+    environment:
+      PORT: 8080
+      DB_PATH: data/mensajeria.sqlite
+      # Keycloak: "iss" esperado (URL pública), claves por la red interna y audiencia de la API.
+      KEYCLOAK_ISSUER: http://localhost:8180/realms/mensajeria
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/mensajeria/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: mensajeria-api
+      CORS_ORIGIN: http://localhost:3000
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      MAIL_FROM: Mensajería de Barrio <no-reply@mensajeria.local>
+      SEED_DEMO: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend-data:/app/data
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  frontend:
+    image: nginx:1.28-alpine
+    environment:
+      API_ORIGIN: http://localhost:8080
+      API_URL: http://localhost:8080/api/v1
+      KEYCLOAK_URL: http://localhost:8180
+      KEYCLOAK_REALM: mensajeria
+      KEYCLOAK_CLIENT_ID: mensajeria-frontend
+      MOSTRAR_CUENTAS_DEMO: "true"
+    ports:
+      - "3000:80"
+    volumes:
+      - ./mensajeria-frontend.html:/usr/share/nginx/html/index.html:ro
+      - ./frontend/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      - backend
+
+volumes:
+  keycloak-data:
+  backend-data:

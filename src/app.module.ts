@@ -4,9 +4,10 @@ import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { mkdirSync } from 'fs';
 import { dirname } from 'path';
+import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { CadetesModule } from './cadetes/cadetes.module';
-import { JwtAuthGuard, RolesGuard } from './common/guards';
+import { RolesGuard } from './common/guards';
 import { EnviosModule } from './envios/envios.module';
 import { MapasModule } from './mapas/mapas.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
@@ -18,14 +19,19 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     ConfigModule.forRoot({
       isGlobal: true,
       validate: (env: Record<string, unknown>) => {
-        if (!env.JWT_SECRET) {
+        if (!env.KEYCLOAK_ISSUER) {
           if (env.NODE_ENV === 'production') {
-            throw new Error('Falta la variable JWT_SECRET (obligatoria en producción).');
+            throw new Error('Falta la variable KEYCLOAK_ISSUER (obligatoria en producción).');
           }
-          new Logger('Config').warn('JWT_SECRET no definido: se usa uno de desarrollo (inseguro).');
-          return { ...env, JWT_SECRET: 'secreto-solo-para-desarrollo' };
+          new Logger('Config').warn(
+            'KEYCLOAK_ISSUER no definido: se usa el Keycloak local de docker-compose (http://localhost:8180).',
+          );
         }
-        return env;
+        return {
+          ...env,
+          KEYCLOAK_ISSUER: env.KEYCLOAK_ISSUER || 'http://localhost:8180/realms/mensajeria',
+          KEYCLOAK_AUDIENCE: env.KEYCLOAK_AUDIENCE || 'mensajeria-api',
+        };
       },
     }),
     TypeOrmModule.forRootAsync({
@@ -54,7 +60,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
   ],
   providers: [
     // Orden importante: primero autenticar, después autorizar por rol.
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })

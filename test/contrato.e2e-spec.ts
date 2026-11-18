@@ -3,13 +3,16 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import request from 'supertest';
 import { Repository } from 'typeorm';
+import { generateKeyPair } from 'jose';
 import { AppModule } from '../src/app.module';
 import { configurarApp } from '../src/app.setup';
+import { VerificadorTokens } from '../src/auth/verificador-tokens';
 import { PuntoDireccion, ResultadoMapas, ServicioMapas } from '../src/mapas/servicio-mapas';
 import { MailService, MensajeMail } from '../src/notificaciones/mail.service';
 import { Rol } from '../src/usuarios/rol';
 import { Usuario } from '../src/usuarios/usuario.entity';
 import { UsuariosService } from '../src/usuarios/usuarios.service';
+import { EmisorTokens } from './tokens';
 
 class MailFalso {
   enviados: MensajeMail[] = [];
@@ -32,7 +35,15 @@ class MapasFalso extends ServicioMapas {
   }
 }
 
-const PASS = 'secreto123';
+/** Las cuentas demo tal como las emite Keycloak (mismos emails que los perfiles del seed). */
+const CUENTAS = {
+  operador: { email: 'operador@mensajeria.com', nombre: 'Operador Central', roles: ['OPERADOR', 'CLIENTE'] },
+  cliente: { email: 'contacto@estudioperez.com', nombre: 'Estudio Contable Pérez', roles: ['CLIENTE'] },
+  cliente2: { email: 'libreria@norte.com', nombre: 'Librería Norte', roles: ['CLIENTE'] },
+  juan: { email: 'juan@mensajeria.com', nombre: 'Juan Pérez', roles: ['CADETE', 'CLIENTE'] },
+  lucia: { email: 'lucia@mensajeria.com', nombre: 'Lucía Fernández', roles: ['CADETE', 'CLIENTE'] },
+};
+
 const BODY_ENVIO = {
   origen: { calle: 'Av. Rivadavia 5200', localidad: 'CABA', referencias: 'Timbre 2' },
   destino: { calle: 'Av. Corrientes 1234, piso 3 B', localidad: 'CABA' },
@@ -48,95 +59,127 @@ describe('API Mensajería de Barrio (contrato OpenAPI)', () => {
   const ids: Record<string, number> = {};
   let envioId: number;
 
+  let emisor: EmisorTokens;
+
   const api = () => request(app.getHttpServer());
   const como = (rol: string) => ({ Authorization: `Bearer ${tokens[rol]}` });
-
-  async function loginDe(email: string) {
-    const r = await api().post('/api/v1/auth/login').send({ email, password: PASS }).expect(200);
-    return r.body as { token: string; usuario: { id: number } };
-  }
+  const conToken = (token: string) => ({ Authorization: `Bearer ${token}` });
+  const me = (token: string) => api().get('/api/v1/auth/me').set(conToken(token));
 
   beforeAll(async () => {
+    emisor = await EmisorTokens.crear();
     const modulo = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(MailService)
       .useValue(mail)
       .overrideProvider(ServicioMapas)
       .useValue(mapas)
+      .overrideProvider(VerificadorTokens)
+      .useValue(emisor.verificador())
       .compile();
     app = modulo.createNestApplication();
     configurarApp(app);
     await app.init();
 
-    for (const [clave, email] of Object.entries({
-      operador: 'operador@mensajeria.com',
-      cliente: 'contacto@estudioperez.com',
-      cliente2: 'libreria@norte.com',
-      juan: 'juan@mensajeria.com',
-      lucia: 'lucia@mensajeria.com',
-    })) {
-      const r = await loginDe(email);
-      tokens[clave] = r.token;
-      ids[clave] = r.usuario.id;
+    for (const [clave, cuenta] of Object.entries(CUENTAS)) {
+      tokens[clave] = await emisor.firmar({ sub: `kc-${clave}`, ...cuenta });
+      const r = await me(tokens[clave]).expect(200);
+      ids[clave] = r.body.id;
     }
   });
 
   afterAll(() => app.close());
 
-  describe('Auth', () => {
-    it('login válido devuelve token, expiraEn y usuario sin datos sensibles', async () => {
-      const r = await api()
-        .post('/api/v1/auth/login')
-        .send({ email: 'operador@mensajeria.com', password: PASS })
-        .expect(200);
-      expect(r.body.token).toEqual(expect.any(String));
-      expect(r.body.expiraEn).toBe(28800);
-      expect(r.body.usuario).toEqual({
-        id: expect.any(Number),
+  describe('Auth (tokens OIDC de Keycloak)', () => {
+    it('GET /auth/me devuelve el perfil del dueño del token, sin datos sensibles', async () => {
+      const r = await api().get('/api/v1/auth/me').set(como('operador')).expect(200);
+      expect(r.body).toEqual({
+        id: ids.operador,
         nombre: 'Operador Central',
         email: 'operador@mensajeria.com',
-        rol: 'OPERADOR',
+        rol: 'OPERADOR', // tiene OPERADOR y CLIENTE (rol por defecto): gana el de más privilegio
       });
     });
 
-    it('contraseña incorrecta → 401 CREDENCIALES_INVALIDAS', async () => {
-      const r = await api()
-        .post('/api/v1/auth/login')
-        .send({ email: 'operador@mensajeria.com', password: 'incorrecta1' })
-        .expect(401);
-      expect(r.body.codigo).toBe('CREDENCIALES_INVALIDAS');
-    });
-
-    it('email inexistente → 401 con el mismo mensaje', async () => {
-      const r = await api()
-        .post('/api/v1/auth/login')
-        .send({ email: 'nadie@x.com', password: PASS })
-        .expect(401);
-      expect(r.body.codigo).toBe('CREDENCIALES_INVALIDAS');
-    });
-
-    it('body inválido → 400 VALIDACION', async () => {
-      const r = await api().post('/api/v1/auth/login').send({ email: 'no-es-mail', password: '123' }).expect(400);
-      expect(r.body.codigo).toBe('VALIDACION');
-      expect(r.body.mensaje).toEqual(expect.any(String));
-    });
-
-    it('JSON malformado → 400 con formato de error del contrato', async () => {
-      const r = await api()
-        .post('/api/v1/auth/login')
-        .set('Content-Type', 'application/json')
-        .send('{esto no es json')
-        .expect(400);
-      expect(r.body).toEqual({ codigo: expect.any(String), mensaje: expect.any(String) });
+    it('el primer login se vincula por email al perfil precargado (conserva el teléfono)', async () => {
+      const cadetes = await api().get('/api/v1/cadetes').set(como('operador')).expect(200);
+      expect(cadetes.body.find((c: any) => c.id === ids.juan)).toMatchObject({
+        nombre: 'Juan Pérez',
+        telefono: '+54 11 4444-9876',
+      });
     });
 
     it('sin token → 401 NO_AUTENTICADO; token basura → 401', async () => {
       expect((await api().get('/api/v1/auth/me').expect(401)).body.codigo).toBe('NO_AUTENTICADO');
-      await api().get('/api/v1/auth/me').set('Authorization', 'Bearer basura').expect(401);
+      await me('basura').expect(401);
     });
 
-    it('GET /auth/me devuelve el usuario del token', async () => {
-      const r = await api().get('/api/v1/auth/me').set(como('cliente')).expect(200);
-      expect(r.body).toMatchObject({ email: 'contacto@estudioperez.com', rol: 'CLIENTE' });
+    it('token vencido, de otro issuer, de otra audiencia o firmado con otra clave → 401', async () => {
+      const base = { sub: 'kc-cliente', ...CUENTAS.cliente };
+      const otraClave = (await generateKeyPair('RS256')).privateKey;
+      const malos = [
+        await emisor.firmar({ ...base, expiraEn: Math.floor(Date.now() / 1000) - 60 }),
+        await emisor.firmar({ ...base, issuer: 'http://otro-keycloak/realms/mensajeria' }),
+        await emisor.firmar({ ...base, audience: 'otra-app' }),
+        await emisor.firmar(base, otraClave),
+      ];
+      for (const t of malos) {
+        expect((await me(t).expect(401)).body.codigo).toBe('NO_AUTENTICADO');
+      }
+    });
+
+    it('usuario de Keycloak sin ningún rol de la app → 403 SIN_PERMISO', async () => {
+      const t = await emisor.firmar({ sub: 'kc-sin-rol', email: 'sinrol@x.com', nombre: 'Sin Rol', roles: [] });
+      expect((await me(t).expect(403)).body.codigo).toBe('SIN_PERMISO');
+    });
+
+    it('usuario nuevo registrado en Keycloak: se le crea el perfil como CLIENTE en el primer request', async () => {
+      const t = await emisor.firmar({ sub: 'kc-nuevo', email: 'Nuevo@Cliente.com', nombre: 'Cliente Nuevo', roles: ['CLIENTE'] });
+      const r1 = await me(t).expect(200);
+      expect(r1.body).toMatchObject({ email: 'nuevo@cliente.com', nombre: 'Cliente Nuevo', rol: 'CLIENTE' });
+      const r2 = await me(t).expect(200);
+      expect(r2.body.id).toBe(r1.body.id);
+    });
+
+    it('primeros requests en paralelo del mismo usuario no duplican el perfil', async () => {
+      const t = await emisor.firmar({ sub: 'kc-paralelo', email: 'paralelo@x.com', nombre: 'Paralelo', roles: ['CLIENTE'] });
+      const rs = await Promise.all([1, 2, 3, 4].map(() => me(t)));
+      expect(rs.map((r) => r.status)).toEqual([200, 200, 200, 200]);
+      expect(new Set(rs.map((r) => r.body.id)).size).toBe(1);
+    });
+
+    it('cambios de nombre o rol en Keycloak se reflejan en el perfil local', async () => {
+      const datos = { sub: 'kc-cambia', email: 'cambia@x.com', nombre: 'Antes', roles: ['CLIENTE'] };
+      const antes = await me(await emisor.firmar(datos)).expect(200);
+      const despues = await me(await emisor.firmar({ ...datos, nombre: 'Después', roles: ['CLIENTE', 'OPERADOR'] })).expect(200);
+      expect(despues.body).toMatchObject({ id: antes.body.id, nombre: 'Después', rol: 'OPERADOR' });
+    });
+
+    it('email sin verificar que coincide con un perfil existente → 403 EMAIL_NO_VERIFICADO (no lo usurpa)', async () => {
+      const t = await emisor.firmar({
+        sub: 'kc-impostor',
+        email: 'libreria@norte.com',
+        nombre: 'Impostor',
+        roles: ['CLIENTE'],
+        emailVerificado: false,
+      });
+      expect((await me(t).expect(403)).body.codigo).toBe('EMAIL_NO_VERIFICADO');
+    });
+
+    it('usuario desactivado localmente → 403 USUARIO_INACTIVO', async () => {
+      const datos = { sub: 'kc-baja', email: 'baja@x.com', nombre: 'Dado de Baja', roles: ['CLIENTE'] };
+      const r = await me(await emisor.firmar(datos)).expect(200);
+      await app.get<Repository<Usuario>>(getRepositoryToken(Usuario)).update(r.body.id, { activo: false });
+      expect((await me(await emisor.firmar(datos)).expect(403)).body.codigo).toBe('USUARIO_INACTIVO');
+    });
+
+    it('JSON malformado → 400 con formato de error del contrato', async () => {
+      const r = await api()
+        .post('/api/v1/envios')
+        .set(como('cliente'))
+        .set('Content-Type', 'application/json')
+        .send('{esto no es json')
+        .expect(400);
+      expect(r.body).toEqual({ codigo: expect.any(String), mensaje: expect.any(String) });
     });
 
     it('ruta inexistente → 404 con formato del contrato', async () => {
@@ -204,7 +247,6 @@ describe('API Mensajería de Barrio (contrato OpenAPI)', () => {
       const inactivo = await app.get(UsuariosService).crear({
         nombre: 'Ex Cadete',
         email: 'ex@mensajeria.com',
-        password: PASS,
         rol: Rol.CADETE,
       });
       await repo.update(inactivo.id, { activo: false });

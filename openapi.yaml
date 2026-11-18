@@ -16,6 +16,10 @@ info:
     Ante cada cambio de estado el sistema envía un mail al cliente. Las
     notificaciones son internas (no se exponen como endpoints).
 
+    **Autenticación:** la resuelve Keycloak (OpenID Connect). El usuario
+    inicia sesión, se registra y recupera su contraseña en Keycloak; la API
+    solo recibe y valida el access token (ver `bearerAuth`).
+
     **Corte implementado:** login + asignación de un envío a un cadete +
     consulta del estado por parte del cliente. Los endpoints que forman
     parte del corte están marcados con `x-corte: true`.
@@ -30,7 +34,7 @@ servers:
 
 tags:
   - name: Auth
-    description: Inicio de sesión y datos del usuario autenticado.
+    description: Datos del usuario autenticado (el inicio de sesión lo hace Keycloak).
   - name: Envíos
     description: Alta, consulta y seguimiento de envíos.
   - name: Asignación
@@ -44,49 +48,15 @@ security:
   - bearerAuth: []
 
 paths:
-  /auth/login:
-    post:
-      tags: [Auth]
-      summary: Iniciar sesión
-      description: |
-        Valida email y contraseña y devuelve un token JWT. El token incluye
-        el rol del usuario (`CLIENTE`, `OPERADOR` o `CADETE`), que el
-        backend usa para autorizar cada operación.
-      operationId: login
-      x-corte: true
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-            example:
-              email: operador@mensajeria.com
-              password: secreto123
-      responses:
-        '200':
-          description: Credenciales válidas.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          description: Email o contraseña incorrectos.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                codigo: CREDENCIALES_INVALIDAS
-                mensaje: Email o contraseña incorrectos.
-
   /auth/me:
     get:
       tags: [Auth]
       summary: Obtener el usuario autenticado
+      description: |
+        Devuelve el perfil local del dueño del access token de Keycloak.
+        En el primer request de un usuario, el backend crea su perfil (o lo
+        vincula por email, si Keycloak lo verificó, con un perfil precargado).
+        El frontend lo llama justo después del login.
       operationId: getMe
       x-corte: true
       responses:
@@ -98,6 +68,20 @@ paths:
                 $ref: '#/components/schemas/Usuario'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: |
+            El token es válido pero el usuario no puede operar:
+            `SIN_PERMISO` (no tiene ningún rol de la app en Keycloak),
+            `USUARIO_INACTIVO` (desactivado localmente) o
+            `EMAIL_NO_VERIFICADO` (su email coincide con un perfil existente
+            pero Keycloak no lo verificó).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                codigo: USUARIO_INACTIVO
+                mensaje: Tu usuario está desactivado. Hablá con el operador.
 
   /envios:
     get:
@@ -472,7 +456,14 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Token obtenido en `POST /auth/login`.
+      description: |
+        Access token emitido por Keycloak (realm `mensajeria`, cliente
+        `mensajeria-frontend`, flujo Authorization Code + PKCE). El backend
+        valida firma (JWKS del realm), `iss`, `aud` = `mensajeria-api` y
+        vencimiento. El rol sale de `realm_access.roles` (`CLIENTE`,
+        `OPERADOR`, `CADETE`; si tiene varios, gana el de más privilegio).
+        Descubrimiento OIDC:
+        `http://localhost:8180/realms/mensajeria/.well-known/openid-configuration`.
 
   parameters:
     EnvioId:
@@ -539,33 +530,6 @@ components:
         nombre:
           type: string
           example: Estudio Contable Pérez
-
-    LoginRequest:
-      type: object
-      required: [email, password]
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          format: password
-          minLength: 8
-
-    LoginResponse:
-      type: object
-      required: [token, expiraEn, usuario]
-      properties:
-        token:
-          type: string
-          description: 'JWT a enviar en el header `Authorization: Bearer <token>`.'
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        expiraEn:
-          type: integer
-          description: Segundos hasta que el token expira.
-          example: 28800
-        usuario:
-          $ref: '#/components/schemas/Usuario'
 
     EstadoEnvio:
       type: string

@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Si cambiás API_URL (más abajo), cambiá también el origen en connect-src. 'unsafe-eval' lo exige Vue para compilar plantillas en el navegador. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; connect-src http://localhost:8080; base-uri 'none'; form-action 'none'">
+<!-- La Content-Security-Policy la manda nginx (frontend/nginx.conf.template), así toma las URLs de la API y de Keycloak del docker-compose. -->
 <title>Mensajería de Barrio</title>
 <style>
 :root{--bg:#f2f4f7;--card:#fff;--ink:#101828;--sub:#5b6577;--line:#d9dee7;--brand:#1f4fd8;--on-brand:#fff;--err:#b42318;--err-bg:#fdecea;
@@ -28,8 +27,8 @@ fieldset{border:1px solid var(--line);border-radius:10px;margin:1rem 0;padding:0
 summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
 .dos{display:grid;grid-template-columns:1fr 1fr;gap:0 .75rem}@media (max-width:520px){.dos{grid-template-columns:1fr}}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem}
-.login{max-width:420px;margin:10vh auto 0;padding:0 1rem}.login h1{font-size:1.6rem;margin:0 0 1rem}
-.demo{margin-top:1rem}.demo summary{font-size:1rem;margin:0}.demo button{margin:.6rem .5rem 0 0}
+.login{max-width:420px;margin:10vh auto 0;padding:0 1rem}.login h1{font-size:1.6rem;margin:0 0 1rem}.login p{margin:0 0 1rem;color:var(--sub)}
+.demo{margin-top:1rem}.demo summary{font-size:1rem;margin:0}.demo ul{margin:.6rem 0 0;padding-left:1.2rem}.demo code{font-size:.95rem}
 .envio{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:12px;padding:1rem;margin-bottom:.85rem}
 .envio>button.sec{margin-top:.75rem}
 .e-PENDIENTE{--c:var(--e-PENDIENTE)}.e-ASIGNADO{--c:var(--e-ASIGNADO)}.e-RETIRADO{--c:var(--e-RETIRADO)}
@@ -59,6 +58,7 @@ summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
       <header><div class="barra">
         <span class="marca">Mensajería de Barrio</span>
         <span class="quien">{{ sesion.usuario.nombre }} ({{ ROLES[sesion.usuario.rol] }})</span>
+        <button class="sec" @click="miCuenta">Mi cuenta</button>
         <button class="sec" @click="salir">Salir</button>
       </div></header>
       <main>
@@ -74,16 +74,17 @@ summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
 <template id="t-login">
   <div class="login">
     <h1>Mensajería de Barrio</h1>
-    <form class="panel" @submit.prevent="entrar">
-      <label for="email">Email</label>
-      <input id="email" type="email" required autocomplete="username" v-model="form.email">
-      <label for="pass">Contraseña</label>
-      <input id="pass" type="password" required minlength="8" autocomplete="current-password" v-model="form.password">
-      <div class="fila"><button type="submit" :disabled="ui.ocupado">Ingresar</button></div>
-      <p class="error" role="alert" v-if="error">{{ error }}</p>
-    </form>
+    <div class="panel">
+      <p>{{ sesion.cargando ? 'Verificando tu sesión…' : 'Ingresá con tu cuenta o creá una nueva para pedir envíos.' }}</p>
+      <div class="fila">
+        <button type="button" :disabled="sesion.cargando" @click="entrar">Ingresar</button>
+        <button type="button" class="sec" :disabled="sesion.cargando" @click="registrarse">Crear cuenta</button>
+      </div>
+      <p class="error" role="alert" v-if="sesion.aviso">{{ sesion.aviso }}</p>
+    </div>
     <details class="panel demo" v-if="demo"><summary>Cuentas de prueba</summary>
-      <button v-for="c in cuentas" :key="c[1]" type="button" class="sec" @click="usar(c[1])">{{ c[0] }}</button>
+      <ul><li v-for="c in cuentas" :key="c[1]">{{ c[0] }}: <code>{{ c[1] }}</code></li></ul>
+      <p>Contraseña de todas: <code>secreto123</code></p>
     </details>
   </div>
 </template>
@@ -185,14 +186,35 @@ summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.44/dist/vue.global.prod.js" integrity="sha384-tORx0bXmMnTC28EYQe1coaGZKSQupXQEYDBNex8xkzJ9iqUoNy9Y+VFBhVxi4kUr" crossorigin="anonymous"></script>
-<script>
-'use strict';
+<!-- Configuración del entorno (window.CONFIG). En docker-compose la genera nginx a partir de variables de entorno. -->
+<script src="config.js"></script>
+<script type="importmap">
+{
+  "imports": { "keycloak-js": "https://cdn.jsdelivr.net/npm/keycloak-js@26.2.1/lib/keycloak.js" },
+  "integrity": { "https://cdn.jsdelivr.net/npm/keycloak-js@26.2.1/lib/keycloak.js": "sha384-5DfY8eq44b+AEmaJCO2kh2SJuJBrl/Kg44jPRgW0mQKx8m14M/aoU3YFTszF4q0P" }
+}
+</script>
+<script type="module">
+import Keycloak from 'keycloak-js';
 const { createApp, reactive, ref, computed, watch, onMounted, onUnmounted } = Vue;
 
 /* ====================== MODELO ======================
    Datos y reglas del negocio. No sabe nada de pantallas ni de Vue. */
-const API_URL = (window.API_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '');
-const MOSTRAR_CUENTAS_DEMO = true; // poner en false antes de usarlo con datos reales
+const CONFIG = {
+  apiUrl: 'http://localhost:8080/api/v1',
+  keycloakUrl: 'http://localhost:8180',
+  realm: 'mensajeria',
+  clientId: 'mensajeria-frontend',
+  mostrarCuentasDemo: true, // poner en false antes de usarlo con datos reales
+  ...(window.CONFIG || {}),
+};
+const API_URL = CONFIG.apiUrl.replace(/\/$/, '');
+const MOSTRAR_CUENTAS_DEMO = CONFIG.mostrarCuentasDemo;
+
+/* Login con Keycloak (OpenID Connect, Authorization Code + PKCE). La contraseña nunca pasa por esta página:
+   se escribe en la pantalla de Keycloak, que devuelve un código que keycloak-js cambia por los tokens. */
+const kc = new Keycloak({ url: CONFIG.keycloakUrl, realm: CONFIG.realm, clientId: CONFIG.clientId });
+const VOLVER_A = location.origin + location.pathname;
 
 const ESTADOS = { PENDIENTE: 'Pendiente', ASIGNADO: 'Asignado', RETIRADO: 'Retirado', EN_CAMINO: 'En camino', ENTREGADO: 'Entregado', NO_ENTREGADO: 'No entregado' };
 const ROLES = { CLIENTE: 'cliente', OPERADOR: 'operador', CADETE: 'cadete' };
@@ -209,25 +231,31 @@ const GRUPOS = {
 const fecha = s => new Date(s).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
 
 const Api = {
-  token: null,
   alExpirar: () => {},
+  // Access token vigente: si le quedan menos de 30 s, keycloak-js lo renueva con el refresh token.
+  async token() {
+    if (!kc.authenticated) return null;
+    try { await kc.updateToken(30); } catch { this.alExpirar(); throw new Error('Tu sesión venció. Ingresá de nuevo.'); }
+    return kc.token;
+  },
   async llamar(ruta, { metodo = 'GET', cuerpo } = {}) {
+    const token = await this.token();
     let res;
     try {
       res = await fetch(API_URL + ruta, {
         method: metodo,
-        headers: { 'Content-Type': 'application/json', ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}) },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
         body: cuerpo ? JSON.stringify(cuerpo) : undefined,
       });
     } catch { throw new Error('No se pudo conectar con el servidor. Revisá que el backend esté encendido en ' + API_URL + '.'); }
     const datos = await res.json().catch(() => null);
     if (!res.ok) {
-      if (res.status === 401 && this.token) this.alExpirar();
+      if (res.status === 401 && token) this.alExpirar();
       throw new Error(datos?.mensaje || 'Ocurrió un error inesperado.');
     }
     return datos;
   },
-  login: (email, password) => Api.llamar('/auth/login', { metodo: 'POST', cuerpo: { email, password } }),
+  me: () => Api.llamar('/auth/me'),
   envios: consulta => Api.llamar('/envios?' + consulta),
   envio: id => Api.llamar('/envios/' + id),
   crearEnvio: cuerpo => Api.llamar('/envios', { metodo: 'POST', cuerpo }),
@@ -251,28 +279,30 @@ async function ejecutar(fn, alError = e => avisar(e.message, true)) {
   try { const msg = await fn(); if (msg) avisar(msg); } catch (e) { alError(e); } finally { ui.ocupado = false; }
 }
 
-let guardada = null;
-try { guardada = JSON.parse(sessionStorage.getItem('sesion')); } catch { /* sin almacenamiento: la sesión vive solo en memoria */ }
-const sesion = reactive({ token: guardada?.token ?? null, usuario: guardada?.usuario ?? null, aviso: '' });
-Api.token = sesion.token;
-function persistir() {
-  Api.token = sesion.token;
-  try { sesion.token ? sessionStorage.setItem('sesion', JSON.stringify({ token: sesion.token, usuario: sesion.usuario })) : sessionStorage.removeItem('sesion'); } catch { /* idem */ }
+// La sesión la guarda Keycloak (cookie en su dominio). Al recargar, keycloak-js la recupera con un ida y vuelta
+// al servidor de login sin pedir la contraseña ('check-sso'); por eso acá no se guarda nada en el navegador.
+const sesion = reactive({ usuario: null, cargando: true, aviso: '' });
+const salir = () => kc.logout({ redirectUri: VOLVER_A });
+const miCuenta = () => kc.accountManagement();
+Api.alExpirar = () => { sesion.usuario = null; sesion.aviso = 'Tu sesión venció. Ingresá de nuevo.'; kc.clearToken(); };
+
+async function iniciarSesion() {
+  try {
+    const autenticado = await kc.init({ onLoad: 'check-sso', pkceMethod: 'S256', checkLoginIframe: false });
+    // /auth/me crea o vincula el perfil del usuario en el backend en su primer ingreso.
+    if (autenticado) sesion.usuario = await Api.me();
+  } catch (e) {
+    sesion.aviso = e?.message || 'No se pudo conectar con el servidor de login.';
+  } finally { sesion.cargando = false; }
 }
-function salir() { sesion.token = null; sesion.usuario = null; persistir(); }
-Api.alExpirar = () => { sesion.aviso = 'Tu sesión venció. Ingresá de nuevo.'; salir(); };
 
 function useLogin() {
-  const form = reactive({ email: '', password: '' });
-  const error = ref(sesion.aviso);
-  sesion.aviso = '';
-  const entrar = () => { error.value = ''; return ejecutar(async () => {
-    const r = await Api.login(form.email.trim(), form.password);
-    sesion.token = r.token; sesion.usuario = r.usuario; persistir();
-  }, e => { error.value = e.message; }); };
+  // Si Keycloak autenticó pero la API rechazó al usuario (sin rol, desactivado...), "Ingresar" cierra esa
+  // sesión de Keycloak para poder entrar con otra cuenta en vez de volver a caer en la misma.
+  const entrar = () => kc.authenticated ? salir() : kc.login({ redirectUri: VOLVER_A });
+  const registrarse = () => kc.register({ redirectUri: VOLVER_A });
   const cuentas = [['Operador', 'operador@mensajeria.com'], ['Cliente', 'contacto@estudioperez.com'], ['Cadete', 'juan@mensajeria.com']];
-  const usar = email => { form.email = email; form.password = 'secreto123'; };
-  return { form, error, entrar, cuentas, usar, demo: MOSTRAR_CUENTAS_DEMO };
+  return { sesion, entrar, registrarse, cuentas, demo: MOSTRAR_CUENTAS_DEMO };
 }
 
 // Lista paginada de envíos, reutilizada por las tres pantallas. `params()` devuelve los filtros de la consulta.
@@ -349,7 +379,7 @@ function useCadete() {
 }
 
 /* ====================== VISTA: componentes que unen cada plantilla con su vistamodelo ====================== */
-const app = createApp({ template: '#t-raiz', setup: () => ({ sesion, salir }) });
+const app = createApp({ template: '#t-raiz', setup: () => ({ sesion, salir, miCuenta }) });
 Object.assign(app.config.globalProperties, { ui, ESTADOS, ROLES, fecha });
 app.component('vista-login', { template: '#t-login', setup: useLogin });
 app.component('vista-cliente', { template: '#t-cliente', setup: useCliente });
@@ -365,6 +395,7 @@ app.component('tarjeta-envio', {
   },
 });
 app.mount('#app');
+iniciarSesion();
 </script>
 </body>
 </html>

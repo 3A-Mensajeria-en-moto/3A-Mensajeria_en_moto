@@ -1,18 +1,14 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
-import { Public, UsuarioActual, UsuarioToken } from '../common/decoradores';
-import { LoginDto } from './auth.dto';
+import { Controller, Get } from '@nestjs/common';
+import { UsuarioActual, UsuarioToken } from '../common/decoradores';
 import { AuthService } from './auth.service';
 
+/**
+ * El login lo resuelve Keycloak (OIDC, Authorization Code + PKCE desde el frontend).
+ * Acá solo queda consultar el perfil local del usuario dueño del token.
+ */
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
-
-  @Public()
-  @Post('login')
-  @HttpCode(200)
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto.email, dto.password);
-  }
 
   @Get('me')
   me(@UsuarioActual() usuario: UsuarioToken) {
