@@ -6,4 +6,3 @@ test
 *.sqlite*
 keycloak
 frontend
-mensajeria-frontend.html

@@ -8,7 +8,7 @@ docker compose up --build
 
 | Servicio | URL | Notas |
 |---|---|---|
-| Frontend | http://localhost:3000 | nginx sirviendo `mensajeria-frontend.html` |
+| Frontend | http://localhost:3000 | nginx sirviendo `frontend/index.html` |
 | API | http://localhost:8080/api/v1 | NestJS + SQLite (volumen `backend-data`) |
 | Keycloak | http://localhost:8180 | consola de admin: `admin` / `admin` |
 | Mailpit | http://localhost:8025 | mails de Keycloak y de la app. Si el puerto está ocupado: `MAILPIT_PORT=8026 docker compose up` |

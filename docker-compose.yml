@@ -85,7 +85,7 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - ./mensajeria-frontend.html:/usr/share/nginx/html/index.html:ro
+      - ./frontend/index.html:/usr/share/nginx/html/index.html:ro
       - ./frontend/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
     depends_on:
       - backend
