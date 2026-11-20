@@ -5,49 +5,310 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- La Content-Security-Policy la manda nginx (frontend/nginx.conf.template), así toma las URLs de la API y de Keycloak del docker-compose. -->
 <title>Mensajería de Barrio</title>
+<meta name="theme-color" content="#0a0d14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f19'/%3E%3Ccircle cx='9' cy='16' r='4' fill='none' stroke='white' stroke-width='2.5'/%3E%3Cpath d='M15 16h2' stroke='white' stroke-opacity='.5' stroke-width='2'/%3E%3Ccircle cx='23' cy='16' r='4.5' fill='%23ff5a1f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap">
 <style>
-:root{--bg:#f2f4f7;--card:#fff;--ink:#101828;--sub:#5b6577;--line:#d9dee7;--brand:#1f4fd8;--on-brand:#fff;--err:#b42318;--err-bg:#fdecea;
---e-PENDIENTE:#b26a00;--e-ASIGNADO:#2b5fd9;--e-RETIRADO:#7c4ddb;--e-EN_CAMINO:#0b7f86;--e-ENTREGADO:#1c7c46;--e-NO_ENTREGADO:#c0392b;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#0f141c;--card:#18202b;--ink:#eef1f6;--sub:#a3adbd;--line:#2b3544;--brand:#6c93ff;--on-brand:#0f141c;--err:#ff9b8f;--err-bg:#3a1f1d;
---e-PENDIENTE:#f0b254;--e-ASIGNADO:#7da2ff;--e-RETIRADO:#b497ff;--e-EN_CAMINO:#4fd1d9;--e-ENTREGADO:#5fd592;--e-NO_ENTREGADO:#ff8a7d;color-scheme:dark}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
-header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-.barra{max-width:760px;margin:auto;padding:.7rem 1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
-.marca{font-weight:700;font-size:1.15rem;margin-right:auto}.quien{color:var(--sub);font-size:.95rem}
-main{max-width:760px;margin:auto;padding:1rem}
-h2{font-size:1.3rem;margin:1.5rem 0 .75rem}
+/* ====================== TOKENS ====================== */
+:root{
+  --bg:#f4f5f7;--surface:#fff;--surface-2:#f0f2f5;--seg-on:#fff;--ink:#0b0f19;--sub:#5a6476;--line:#e4e7ec;--line-2:#d2d7df;
+  --primario:#0b0f19;--on-primario:#fff;--accent:#ff5a1f;--accent-ink:#c2410c;--violeta:#7c5cff;
+  --err:#b42318;--on-err:#fff;--err-bg:#fef0ee;
+  --sombra-1:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
+  --sombra-2:0 12px 32px -10px rgba(16,24,40,.18),0 2px 6px rgba(16,24,40,.05);
+  --sombra-3:0 24px 48px -12px rgba(16,24,40,.28);
+  --r:14px;--r-lg:20px;
+  --e-PENDIENTE:#a15c00;--e-ASIGNADO:#2b5fd9;--e-RETIRADO:#7c4ddb;--e-EN_CAMINO:#0b7f86;--e-ENTREGADO:#1c7c46;--e-NO_ENTREGADO:#c0392b;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#080b11;--surface:#11161f;--surface-2:#181f2b;--seg-on:#273042;--ink:#eef1f6;--sub:#a0aabb;--line:#222a38;--line-2:#2f3949;
+  --primario:#f4f5f7;--on-primario:#0b0f19;--accent:#ff7a45;--accent-ink:#ff9a6e;--violeta:#9b85ff;
+  --err:#ff9b8f;--on-err:#1d0b09;--err-bg:#2c1614;
+  --sombra-1:0 1px 2px rgba(0,0,0,.4);
+  --sombra-2:0 16px 36px -12px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.3);
+  --sombra-3:0 24px 48px -12px rgba(0,0,0,.7);
+  --e-PENDIENTE:#f0b254;--e-ASIGNADO:#7da2ff;--e-RETIRADO:#b497ff;--e-EN_CAMINO:#4fd1d9;--e-ENTREGADO:#5fd592;--e-NO_ENTREGADO:#ff8a7d;
+  color-scheme:dark}}
+
+/* ====================== BASE ====================== */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:5rem}
+body{margin:0;min-height:100vh;color:var(--ink);font:1rem/1.55 'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(1100px 520px at 100% -8%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 62%),
+    radial-gradient(900px 480px at -8% -4%,color-mix(in srgb,var(--violeta) 9%,transparent),transparent 60%),
+    var(--bg);
+  background-attachment:fixed}
+h1,h2,h3{letter-spacing:-.025em;line-height:1.15}
 button,input,select,textarea{font:inherit;color:inherit}
-button{min-height:44px;padding:.5rem 1rem;border-radius:8px;border:1.5px solid var(--brand);background:var(--brand);color:var(--on-brand);font-weight:700;cursor:pointer}
-button.sec{background:transparent;color:var(--brand)}button:disabled{opacity:.55;cursor:wait}button.act{min-height:52px;flex:1 1 12rem}
-:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
-input,select,textarea{width:100%;min-height:44px;padding:.5rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--card)}
-label{display:block;font-weight:700;margin:.75rem 0 .25rem}
-fieldset{border:1px solid var(--line);border-radius:10px;margin:1rem 0;padding:0 1rem 1rem}legend{font-weight:700;padding:0 .4rem}
-summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
+code{font:600 .88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);border:1px solid var(--line);padding:.1rem .4rem;border-radius:6px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.i{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ====================== BOTONES ====================== */
+button{min-height:44px;padding:.55rem 1.1rem;border-radius:12px;border:1px solid transparent;background:var(--primario);color:var(--on-primario);font-weight:650;letter-spacing:-.005em;
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;cursor:pointer;box-shadow:var(--sombra-1);
+  transition:transform .15s ease,box-shadow .2s ease,background-color .2s ease,border-color .2s ease,color .2s ease}
+button:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--sombra-2)}
+button:active:not(:disabled){transform:translateY(0);box-shadow:var(--sombra-1)}
+button:disabled{opacity:.55;cursor:wait}
+button.sec{background:var(--surface);color:var(--ink);border-color:var(--line-2)}
+button.sec:hover:not(:disabled){border-color:var(--sub)}
+button.ghost{background:transparent;color:var(--sub);box-shadow:none}
+button.ghost:hover:not(:disabled){background:var(--surface-2);color:var(--ink);box-shadow:none;transform:none}
+button.peligro{background:var(--err);color:var(--on-err)}
+button.peligro.sec{background:transparent;color:var(--err);border-color:color-mix(in srgb,var(--err) 40%,transparent)}
+button.peligro.sec:hover:not(:disabled){background:var(--err-bg);border-color:var(--err)}
+button.act{min-height:50px;flex:1 1 12rem}
+button.ancho{width:100%}
+button.chico{min-height:36px;padding:.35rem .7rem;font-size:.9rem;border-radius:10px}
+.girando{animation:girar .9s linear infinite}
+
+/* ====================== FORMULARIOS ====================== */
+input,select,textarea{width:100%;min-height:46px;padding:.6rem .85rem;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);
+  transition:border-color .15s ease,box-shadow .15s ease}
+input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--sub) 60%,var(--line-2))}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 20%,transparent)}
+input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--sub) 75%,transparent)}
+textarea{resize:vertical}
+select{appearance:none;padding-right:2.4rem;cursor:pointer;
+  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a93a5' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right .8rem center/1.1rem}
+label{display:block;font-weight:600;font-size:.875rem;margin:.9rem 0 .35rem}
 .dos{display:grid;grid-template-columns:1fr 1fr;gap:0 .75rem}@media (max-width:520px){.dos{grid-template-columns:1fr}}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem}
-.login{max-width:420px;margin:10vh auto 0;padding:0 1rem}.login h1{font-size:1.6rem;margin:0 0 1rem}.login p{margin:0 0 1rem;color:var(--sub)}
-.demo{margin-top:1rem}.demo summary{font-size:1rem;margin:0}.demo ul{margin:.6rem 0 0;padding-left:1.2rem}.demo code{font-size:.95rem}
-.envio{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:12px;padding:1rem;margin-bottom:.85rem}
-.envio>button.sec{margin-top:.75rem}
+.opc{color:var(--sub);font-weight:500}
+
+/* ====================== ESTRUCTURA ====================== */
+header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--surface) 72%,transparent);
+  -webkit-backdrop-filter:blur(16px) saturate(1.6);backdrop-filter:blur(16px) saturate(1.6);border-bottom:1px solid color-mix(in srgb,var(--line) 80%,transparent)}
+.barra{max-width:1160px;margin:auto;padding:.65rem 1rem;display:flex;align-items:center;gap:.5rem}
+/* Logotipo: un mini recorrido (origen ┈ destino), el mismo dibujo de las tarjetas, + el nombre en una línea. */
+.marca{display:inline-flex;align-items:center;gap:.7rem;margin-right:auto;font-size:1.12rem;letter-spacing:-.04em;line-height:1;white-space:nowrap}
+.trazo{display:inline-flex;align-items:center;flex:none}
+.trazo::before{content:"";width:12px;height:12px;border-radius:50%;border:2.5px solid currentColor}
+.trazo::after{content:"";width:12px;height:12px;border-radius:50%;background:var(--accent)}
+.trazo i{width:15px;margin:0 3px;border-top:2px dashed currentColor;opacity:.45}
+.marca .pre{font-weight:500}.marca b{font-weight:800}
+@media (max-width:420px){.marca .pre{display:none}}
+.usuario{display:flex;align-items:center;gap:.6rem;padding:.25rem .8rem .25rem .3rem;border:1px solid var(--line);border-radius:99px;background:var(--surface);margin-right:.25rem}
+.avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:.78rem;font-weight:800;letter-spacing:.02em;
+  background:var(--primario);color:var(--on-primario)}
+.quien{line-height:1.15;font-size:.9rem}.quien b{display:block;font-weight:700}.quien small{color:var(--sub);text-transform:capitalize}
+@media (max-width:720px){.usuario .quien{display:none}.usuario{padding:.25rem}.barra .txt{display:none}.barra button{padding:.55rem .7rem}}
+main{max-width:1160px;margin:auto;padding:0 1rem 6rem}
+.cabecera{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:2rem 0 1.5rem;animation:subir .45s ease both}
+.kicker{margin:0 0 .35rem;font-size:.78rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--accent-ink)}
+.cabecera h1{margin:0;font-size:clamp(1.75rem,1.3rem + 1.6vw,2.4rem);font-weight:800;letter-spacing:-.035em}
+.cabecera .bajada{margin:.4rem 0 0;color:var(--sub);max-width:46ch}
+h2.seccion{font-size:1.2rem;font-weight:750;margin:0 0 1rem;display:flex;align-items:center;gap:.5rem}
+
+/* ====================== LOGIN ====================== */
+.login{min-height:100vh;display:grid;grid-template-columns:1fr}
+@media (min-width:920px){.login{grid-template-columns:1.15fr 1fr}}
+.hero{position:relative;overflow:hidden;isolation:isolate;background:#0a0d14;color:#f4f5f7;padding:1.5rem 1.25rem 2.25rem;display:flex;flex-direction:column;gap:2.5rem}
+@media (min-width:920px){.hero{padding:2.5rem 3rem;justify-content:space-between}}
+@media (min-width:1400px){.hero{padding:3rem 4.5rem}}
+@media (max-width:919px){.hero>*,.acceso .acceso-in{width:100%;max-width:520px;margin-inline:auto}.acceso{padding-top:2.25rem}}
+.hero::before{content:"";position:absolute;inset:-20%;z-index:-2;
+  background:radial-gradient(40% 35% at 85% 20%,rgba(255,90,31,.55),transparent 70%),radial-gradient(45% 40% at 15% 85%,rgba(124,92,255,.5),transparent 70%),radial-gradient(30% 25% at 60% 70%,rgba(255,61,110,.35),transparent 70%);
+  filter:blur(30px);animation:flotar 18s ease-in-out infinite alternate}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:44px 44px;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 40%,#000 20%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 40%,#000 20%,transparent 75%)}
+.hero h1{font-size:clamp(2.1rem,1rem + 3.2vw,4.1rem);line-height:1.04;letter-spacing:-.045em;font-weight:800;margin:0 0 1rem;text-wrap:balance;animation:subir .6s ease both}
+.grad{display:block;background:linear-gradient(90deg,#ffa06e,#ff4d7a 50%,#a68bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:rgba(244,245,247,.75);font-size:1.08rem;max-width:42ch;margin:0;animation:subir .6s .08s ease both}
+/* Demo de seguimiento: --p (0→1) mueve la moto y la barra; cada parada/etapa calcula si ya se alcanzó
+   (--on), si es la actual (--cur), y el "Llega en" es un contador entero derivado de --p. */
+@property --p{syntax:'<number>';inherits:true;initial-value:0}
+@property --v{syntax:'<number>';inherits:true;initial-value:1}
+@property --eta{syntax:'<integer>';inherits:false;initial-value:0}
+.viaje{--w:14px;margin-top:2.25rem;max-width:460px;padding:1rem 1.15rem 1rem;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);
+  animation:viaje 11s cubic-bezier(.65,0,.35,1) infinite}
+@keyframes viaje{0%{--p:0;--v:0}3%{--v:1}6%{--p:0}20%,26%{--p:.25}40%,46%{--p:.5}60%,66%{--p:.75}80%{--p:1}94%{--p:1;--v:1}100%{--p:1;--v:0}}
+.viaje-cab{display:flex;justify-content:space-between;align-items:center;font-size:.88rem;margin-bottom:1.35rem}
+.viaje-cab b{font-weight:700;font-variant-numeric:tabular-nums}
+.vivo{display:inline-flex;align-items:center;gap:.45rem;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,245,247,.65)}
+.vivo i{width:7px;height:7px;border-radius:50%;background:var(--accent);color:var(--accent);animation:latido 1.6s ease-out infinite}
+.pista{position:relative;height:36px;display:flex;align-items:center;justify-content:space-between}
+.linea{position:absolute;left:calc(var(--w) / 2);right:calc(var(--w) / 2);top:50%;border-top:2px dashed rgba(255,255,255,.2)}
+.progreso{position:absolute;left:0;top:-2px;height:2px;border-radius:2px;width:calc(var(--p) * 100%);background:var(--accent);box-shadow:0 0 14px var(--accent);opacity:var(--v)}
+.moto{position:absolute;z-index:2;top:-1px;left:calc(var(--p) * 100%);width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;display:grid;place-items:center;
+  background:var(--accent);color:#fff;opacity:var(--v);box-shadow:0 0 0 5px rgba(255,90,31,.18),0 8px 22px -6px rgba(255,90,31,.9)}
+.moto .i{width:20px;height:20px;animation:motor .16s ease-in-out infinite alternate}
+.parada{position:relative;z-index:1;width:var(--w);height:var(--w);border-radius:50%;background:#0a0d14;border:2px solid rgba(255,255,255,.3);
+  --on:clamp(0,(var(--p) - var(--i) * .25) * 400 + 1,1)}
+.parada::after{content:"";position:absolute;inset:1px;border-radius:50%;background:#fff;opacity:var(--on);transform:scale(var(--on))}
+.parada:last-child{border-color:rgba(255,90,31,calc(.3 + .7 * var(--on)))}
+.parada:last-child::after{background:var(--accent)}
+.parada:last-child::before{content:"";position:absolute;inset:-7px;border-radius:50%;border:2px solid var(--accent);opacity:var(--on);animation:onda 1.3s ease-out infinite}
+.etapas{position:relative;height:1.55rem;margin-top:.55rem;font-size:.74rem;font-weight:600}
+.etapas span{position:absolute;top:0;white-space:nowrap;left:calc(var(--w) / 2 + (100% - var(--w)) * var(--i) / 4);transform:translateX(-50%);
+  --on:clamp(0,(var(--p) - var(--i) * .25) * 400 + 1,1);--sig:clamp(0,(var(--p) - (var(--i) + 1) * .25) * 400 + 1,1);--cur:calc(var(--on) - var(--sig));
+  color:rgba(244,245,247,calc(.32 + .3 * var(--on) + .38 * var(--cur)))}
+.etapas span:first-child{left:0;transform:none}
+.etapas span:last-child{left:auto;right:0;transform:none}
+.etapas span::after{content:"";display:block;width:16px;height:2px;margin:.3rem auto 0;border-radius:2px;background:var(--accent);opacity:var(--cur);transform:scaleX(var(--cur))}
+@media (max-width:560px){.etapas span{opacity:var(--cur)}}
+.viaje-pie{display:grid;margin-top:.9rem;padding-top:.8rem;border-top:1px solid rgba(255,255,255,.1);font-size:.9rem;--fin:clamp(0,(var(--p) - 1) * 400 + 1,1)}
+.viaje-pie>span{grid-area:1/1;display:flex;align-items:center;gap:.35rem}
+.eta{color:rgba(244,245,247,.7);opacity:calc(1 - var(--fin))}
+.eta b{--eta:calc(15 - var(--p) * 15);counter-reset:eta var(--eta);color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+.eta b::before{content:counter(eta)}
+.listo{color:#9ff0bf;font-weight:700;opacity:var(--fin)}
+@keyframes motor{to{transform:translateY(-1.2px)}}
+@keyframes onda{from{transform:scale(.6)}to{transform:scale(1.7);border-color:transparent}}
+@media (prefers-reduced-motion:reduce){.viaje{animation:none!important;--p:.6}}
+.hero-pie{display:none;color:rgba(244,245,247,.55);font-size:.85rem}
+@media (min-width:920px){.hero-pie{display:block}}
+.acceso{display:grid;place-items:center;padding:2.5rem 1.25rem 3rem}
+.acceso-in{width:100%;max-width:400px;animation:subir .5s .1s ease both}
+.acceso h2{font-size:1.75rem;font-weight:800;margin:0 0 .4rem}
+.acceso .sub{color:var(--sub);margin:0 0 1.5rem}
+.botonera{display:grid;gap:.65rem}
+.botonera button{min-height:50px}
+.separador{display:flex;align-items:center;gap:.75rem;color:var(--sub);font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin:.15rem 0}
+.separador::before,.separador::after{content:"";flex:1;height:1px;background:var(--line-2)}
+.acceso .error{margin:1rem 0 0}
+.demo{margin-top:1.5rem;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.demo summary{list-style:none;cursor:pointer;padding:.85rem 1rem;font-weight:650;font-size:.92rem;display:flex;align-items:center;gap:.5rem}
+.demo summary::-webkit-details-marker{display:none}
+.demo summary .flecha{margin-left:auto;transition:transform .2s}
+.demo[open] summary .flecha{transform:rotate(180deg)}
+.demo ul{list-style:none;margin:0;padding:0 1rem;display:grid;gap:.5rem}
+.demo li{display:flex;justify-content:space-between;align-items:center;gap:.75rem;font-size:.88rem;flex-wrap:wrap}
+.demo li span{color:var(--sub);font-weight:600}
+.demo p{margin:.85rem 0 0;padding:.75rem 1rem;border-top:1px solid var(--line);font-size:.88rem;color:var(--sub)}
+.nota{display:flex;gap:.5rem;align-items:flex-start;margin:1.5rem 0 0;font-size:.82rem;color:var(--sub)}
+.nota .i{margin-top:.15rem}
+
+/* ====================== PANEL DE ENVÍOS ====================== */
+.herramientas{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.lado{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;margin-left:auto}
+.lado .total{color:var(--sub);font-size:.88rem;font-weight:600;margin-right:auto}
+.herramientas h2.seccion{margin:0}
+@media (max-width:600px){.herramientas .segmentos{width:100%}.segmentos button{flex:1 1 auto;padding:.4rem .55rem;font-size:.86rem}.segmentos+.lado{width:100%}}
+@media (max-width:440px){.herramientas .segmentos{display:grid;grid-template-columns:1fr 1fr}}
+.segmentos{display:inline-flex;gap:2px;padding:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.segmentos button{min-height:38px;padding:.4rem .95rem;border-radius:10px;background:transparent;color:var(--sub);box-shadow:none;font-weight:600;white-space:nowrap}
+.segmentos button:hover:not(:disabled){transform:none;box-shadow:none;color:var(--ink)}
+.segmentos button[aria-pressed=true]{background:var(--seg-on);color:var(--ink);box-shadow:var(--sombra-1)}
+.grilla{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));align-items:stretch}
+.mas{display:flex;margin:1.5rem auto 0}
+
+/* ====================== TARJETA DE ENVÍO ====================== */
 .e-PENDIENTE{--c:var(--e-PENDIENTE)}.e-ASIGNADO{--c:var(--e-ASIGNADO)}.e-RETIRADO{--c:var(--e-RETIRADO)}
 .e-EN_CAMINO{--c:var(--e-EN_CAMINO)}.e-ENTREGADO{--c:var(--e-ENTREGADO)}.e-NO_ENTREGADO{--c:var(--e-NO_ENTREGADO)}
-.cab{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.4rem}.cab b{font-size:1.1rem}
-.estado{padding:.1rem .65rem;border-radius:99px;font-weight:700;font-size:.9rem;color:var(--c);border:1.5px solid var(--c)}
-.dato{margin:.15rem 0}.dato span{color:var(--sub)}
-.fila{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.75rem}.fila select,.fila textarea{flex:2 1 12rem}
-.historial{list-style:none;margin:.75rem 0 0;padding:0 0 0 .9rem;border-left:2px solid var(--line)}
-.historial li{margin:.5rem 0;padding-left:.5rem}.historial small{display:block;color:var(--sub)}
-.chips{display:flex;gap:.5rem;flex-wrap:wrap}.chips button{min-height:40px;font-weight:400}
-.chips button[aria-pressed=true]{background:var(--brand);color:var(--on-brand);font-weight:700}
-.error{background:var(--err-bg);color:var(--err);padding:.6rem .8rem;border-radius:8px}
-.vacio{color:var(--sub);text-align:center;padding:2rem 1rem}
-.avisos{position:fixed;left:1rem;right:1rem;bottom:1rem;max-width:460px;margin:auto;display:grid;gap:.5rem;z-index:9}
-.aviso{background:var(--ink);color:var(--bg);padding:.8rem 1rem;border-radius:10px}.aviso.error{background:var(--err);color:var(--bg)}
+.envio{position:relative;overflow:hidden;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:1.15rem 1.2rem 1rem;box-shadow:var(--sombra-1);
+  transition:box-shadow .25s ease,border-color .25s ease,transform .25s ease;animation:subir .4s ease both}
+.envio::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--c),color-mix(in srgb,var(--c) 30%,transparent))}
+.envio:hover{box-shadow:var(--sombra-2);border-color:var(--line-2)}
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem}
+.cab b{display:block;font-size:1.08rem;font-weight:750;letter-spacing:-.015em;font-variant-numeric:tabular-nums}
+.cab small{display:flex;align-items:center;gap:.3rem;color:var(--sub);font-size:.8rem;margin-top:.1rem}
+.cab small .i{width:.95em;height:.95em}
+/* Estado: nombre en versalitas + barra de 5 tramos con el avance del envío (sin caja ni píldora). */
+.estado{display:flex;flex-direction:column;align-items:flex-end;gap:.45rem;padding-top:.2rem;flex:none}
+.estado b{font-size:.7rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;line-height:1;white-space:nowrap;color:var(--c)}
+.tramos{display:flex;gap:3px}
+.tramos i{width:13px;height:4px;border-radius:1px;background:var(--line-2)}
+.tramos i.ok{background:var(--c)}
+.e-EN_CAMINO .tramos i.ok:nth-child(4){animation:parpadeo 1.1s ease-in-out infinite alternate}
+.e-NO_ENTREGADO .tramos i.ok{background:var(--sub);opacity:.45}
+.e-NO_ENTREGADO .tramos i.ok:last-child{background:var(--c);opacity:1}
+@keyframes parpadeo{from{opacity:1}to{opacity:.3}}
+.ruta{list-style:none;margin:1.1rem 0 0;padding:0}
+.ruta li{position:relative;padding-left:1.7rem}
+.ruta li+li{margin-top:.8rem}
+.ruta li::before{content:"";position:absolute;left:0;top:.2rem;width:14px;height:14px;border-radius:50%;background:var(--surface);border:3px solid var(--sub)}
+.ruta li.destino::before{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+.ruta li.origen::after{content:"";position:absolute;left:6px;top:1.15rem;bottom:calc(-.8rem - .2rem);border-left:2px dashed var(--line-2)}
+.ruta small{display:block;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--sub)}
+.ruta span{font-weight:600}.ruta em{font-style:normal;color:var(--sub);font-weight:500}
+.datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.7rem 1rem;margin:1rem 0 0;padding-top:.9rem;border-top:1px solid var(--line)}
+.datos dt{font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--sub)}
+.datos dd{margin:.1rem 0 0;font-weight:550;overflow-wrap:anywhere}
+.datos a{display:block;width:fit-content;color:var(--sub);font-weight:500;font-size:.9rem;white-space:nowrap;text-decoration-color:var(--line-2);text-underline-offset:3px}
+.datos a:hover{color:var(--ink);text-decoration-color:var(--accent)}
+.fila{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}.fila select,.fila textarea{flex:2 1 12rem}
+.envio .error{margin:1rem 0 0}
+.cuerpo{flex:1}
+.pie{display:flex;margin-top:.85rem;padding-top:.6rem;border-top:1px dashed var(--line)}
+.pie button{margin-left:-.5rem}
+.pie .i{transition:transform .2s}.pie [aria-expanded=true] .i{transform:rotate(180deg)}
+.historial{list-style:none;margin:.6rem 0 0;padding:0;animation:subir .3s ease both}
+.historial li{position:relative;padding:0 0 1rem 1.6rem}
+.historial li::before{content:"";position:absolute;left:2px;top:.4rem;width:10px;height:10px;border-radius:50%;background:var(--c,var(--sub));box-shadow:0 0 0 4px color-mix(in srgb,var(--c,var(--sub)) 18%,transparent)}
+.historial li::after{content:"";position:absolute;left:6px;top:1.2rem;bottom:.1rem;width:2px;border-radius:2px;background:var(--line)}
+.historial li:last-child{padding-bottom:0}.historial li:last-child::after{display:none}
+.historial b{font-weight:700}.historial small{display:block;color:var(--sub);font-size:.84rem}
+.historial .obs{margin-top:.3rem;padding:.4rem .65rem;border-radius:10px;background:var(--surface-2);color:var(--ink);font-size:.86rem}
+
+/* ====================== CLIENTE ====================== */
+.cliente{display:grid;gap:2rem;grid-template-columns:minmax(0,1fr)}
+@media (min-width:1000px){.cliente{grid-template-columns:420px minmax(0,1fr);gap:2.25rem}}
+.cliente .grilla{grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))}
+.nuevo{align-self:start;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sombra-1);overflow:hidden;animation:subir .45s ease both}
+.nuevo summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:1.1rem 1.2rem;font-weight:750;font-size:1.1rem;letter-spacing:-.015em}
+.nuevo summary::-webkit-details-marker{display:none}
+.nuevo summary .mas-ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--on-primario);background:var(--primario)}
+.nuevo summary .flecha{margin-left:auto;color:var(--sub);transition:transform .2s}
+.nuevo[open] summary .flecha{transform:rotate(180deg)}
+.nuevo form{padding:0 1.2rem 1.25rem}
+.paso{border:0;margin:0;padding:1.1rem 0 1.2rem;border-top:1px solid var(--line);min-width:0}
+.paso legend{float:left;width:100%;display:flex;align-items:center;gap:.6rem;padding:0;margin-bottom:.35rem;font-weight:700;font-size:.95rem}
+.paso legend+*{clear:both}
+.paso .num{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:800;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-ink)}
+.nuevo button[type=submit]{width:100%;min-height:52px;margin-top:.25rem}
+
+/* ====================== ESTADOS VACÍO / CARGA / ERROR ====================== */
+.error{display:block;background:var(--err-bg);color:var(--err);padding:.75rem 1rem;border-radius:12px;border:1px solid color-mix(in srgb,var(--err) 25%,transparent);font-weight:550;margin:0 0 1rem}
+.vacio{text-align:center;padding:3rem 1.5rem;border:1.5px dashed var(--line-2);border-radius:var(--r-lg);color:var(--sub);background:color-mix(in srgb,var(--surface) 50%,transparent)}
+.vacio .ico{width:56px;height:56px;margin:0 auto 1rem;border-radius:16px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);color:var(--accent);box-shadow:var(--sombra-1)}
+.vacio .ico .i{width:26px;height:26px}
+.vacio p{margin:0 auto;max-width:36ch}
+.esqueleto{height:250px;border-radius:var(--r-lg);border:1px solid var(--line);
+  background:linear-gradient(100deg,var(--surface) 30%,var(--surface-2) 50%,var(--surface) 70%) 0 0/250% 100%;animation:brillo 1.3s linear infinite}
+
+/* ====================== AVISOS ====================== */
+.avisos{position:fixed;left:1rem;right:1rem;bottom:1.25rem;max-width:440px;margin:auto;display:grid;gap:.5rem;z-index:9}
+.aviso{display:flex;align-items:center;gap:.65rem;background:var(--primario);color:var(--on-primario);padding:.85rem 1rem;border-radius:var(--r);box-shadow:var(--sombra-3);font-weight:600;font-size:.94rem}
+.aviso.error{background:var(--err);color:var(--on-err);border:0;margin:0}
+.aviso .i{width:1.25em;height:1.25em}
+.aviso-enter-active,.aviso-leave-active{transition:opacity .3s ease,transform .3s cubic-bezier(.2,.8,.2,1)}
+.aviso-enter-from{opacity:0;transform:translateY(14px) scale(.97)}
+.aviso-leave-to{opacity:0;transform:translateY(8px) scale(.98)}
+
+/* ====================== ANIMACIONES ====================== */
+@keyframes subir{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes girar{to{transform:rotate(360deg)}}
+@keyframes brillo{to{background-position:-250% 0}}
+@keyframes latido{0%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 60%,transparent)}100%{box-shadow:0 0 0 7px transparent}}
+@keyframes flotar{to{transform:translate3d(-4%,3%,0) rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
+<!-- Íconos (trazo de 24px). Se usan con <svg class="i"><use href="#i-..."/></svg>. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-moto" viewBox="0 0 24 24"><circle cx="5.5" cy="17" r="3"/><circle cx="18.5" cy="17" r="3"/><path d="M8.5 17h6l3.5-8h-3.5M15 5h2.5l1.5 4M3 13l3-4h6.5l2 4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-salir" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.8-4M4 4v4h4M4 13a8 8 0 0 0 14.8 4M20 20v-4h-4"/></symbol>
+  <symbol id="i-caja" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8M7.5 5.5l9 5"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></symbol>
+  <symbol id="i-reloj" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-candado" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-llave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
+
 <div id="app"></div>
 
 <!-- ============ VISTA: solo plantillas con enlaces al estado; ninguna lógica de negocio ============ -->
@@ -55,11 +316,14 @@ summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
   <div>
     <vista-login v-if="!sesion.usuario"></vista-login>
     <template v-else>
-      <header><div class="barra">
-        <span class="marca">Mensajería de Barrio</span>
-        <span class="quien">{{ sesion.usuario.nombre }} ({{ ROLES[sesion.usuario.rol] }})</span>
-        <button class="sec" @click="miCuenta">Mi cuenta</button>
-        <button class="sec" @click="salir">Salir</button>
+      <header class="top"><div class="barra">
+        <span class="marca"><span class="trazo" aria-hidden="true"><i></i></span><span><span class="pre">mensajería de </span><b>barrio</b></span></span>
+        <span class="usuario">
+          <span class="avatar" aria-hidden="true">{{ iniciales(sesion.usuario.nombre) }}</span>
+          <span class="quien"><b>{{ sesion.usuario.nombre }}</b><small>{{ ROLES[sesion.usuario.rol] }}</small></span>
+        </span>
+        <button class="ghost" @click="miCuenta" aria-label="Mi cuenta"><svg class="i"><use href="#i-user"/></svg><span class="txt">Mi cuenta</span></button>
+        <button class="ghost" @click="salir" aria-label="Salir"><svg class="i"><use href="#i-salir"/></svg><span class="txt">Salir</span></button>
       </div></header>
       <main>
         <vista-cliente v-if="sesion.usuario.rol === 'CLIENTE'"></vista-cliente>
@@ -67,45 +331,84 @@ summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
         <vista-cadete v-else></vista-cadete>
       </main>
     </template>
-    <div class="avisos"><div v-for="a in ui.avisos" :key="a.id" class="aviso" :class="{ error: a.error }" :role="a.error ? 'alert' : 'status'">{{ a.texto }}</div></div>
+    <transition-group name="aviso" tag="div" class="avisos">
+      <div v-for="a in ui.avisos" :key="a.id" class="aviso" :class="{ error: a.error }" :role="a.error ? 'alert' : 'status'">
+        <svg class="i" aria-hidden="true"><use :href="a.error ? '#i-alerta' : '#i-check'"/></svg>{{ a.texto }}
+      </div>
+    </transition-group>
   </div>
 </template>
 
 <template id="t-login">
   <div class="login">
-    <h1>Mensajería de Barrio</h1>
-    <div class="panel">
-      <p>{{ sesion.cargando ? 'Verificando tu sesión…' : 'Ingresá con tu cuenta o creá una nueva para pedir envíos.' }}</p>
-      <div class="fila">
-        <button type="button" :disabled="sesion.cargando" @click="entrar">Ingresar</button>
-        <button type="button" class="sec" :disabled="sesion.cargando" @click="registrarse">Crear cuenta</button>
+    <section class="hero">
+      <span class="marca"><span class="trazo" aria-hidden="true"><i></i></span><span><span class="pre">mensajería de </span><b>barrio</b></span></span>
+      <div>
+        <h1>Tus envíos del barrio, <span class="grad">en moto y a tiempo.</span></h1>
+        <p>Pedí un envío en segundos, seguí cada paso en vivo y recibí avisos por mail cuando cambia de estado.</p>
+        <!-- Demo decorativa de seguimiento: todo con CSS, una sola variable animada (--p = avance de 0 a 1). -->
+        <div class="viaje" aria-hidden="true">
+          <div class="viaje-cab"><b>Envío #128</b><span class="vivo"><i></i>En vivo</span></div>
+          <div class="pista">
+            <div class="linea"><span class="progreso"></span><span class="moto"><svg class="i"><use href="#i-moto"/></svg></span></div>
+            <span class="parada" v-for="n in 5" :key="n" :style="{ '--i': n - 1 }"></span>
+          </div>
+          <div class="etapas"><span v-for="(e, i) in ['PENDIENTE', 'ASIGNADO', 'RETIRADO', 'EN_CAMINO', 'ENTREGADO']" :key="e" :style="{ '--i': i }">{{ ESTADOS[e] }}</span></div>
+          <div class="viaje-pie"><span class="eta">Llega en <b></b> min</span><span class="listo"><svg class="i"><use href="#i-check"/></svg>Entregado</span></div>
+        </div>
       </div>
-      <p class="error" role="alert" v-if="sesion.aviso">{{ sesion.aviso }}</p>
-    </div>
-    <details class="panel demo" v-if="demo"><summary>Cuentas de prueba</summary>
-      <ul><li v-for="c in cuentas" :key="c[1]">{{ c[0] }}: <code>{{ c[1] }}</code></li></ul>
-      <p>Contraseña de todas: <code>secreto123</code></p>
-    </details>
+      <p class="hero-pie">Clientes, operadores y cadetes en una sola app.</p>
+    </section>
+    <section class="acceso">
+      <div class="acceso-in">
+        <h2>Ingresá a tu cuenta</h2>
+        <p class="sub">{{ sesion.cargando ? 'Verificando tu sesión…' : 'Entrá con tu cuenta o creá una nueva para pedir envíos.' }}</p>
+        <div class="botonera">
+          <button type="button" :disabled="sesion.cargando" @click="entrar">
+            <svg class="i girando" v-if="sesion.cargando" aria-hidden="true"><use href="#i-refresh"/></svg>Ingresar<svg class="i" v-if="!sesion.cargando" aria-hidden="true"><use href="#i-flecha"/></svg>
+          </button>
+          <span class="separador">o</span>
+          <button type="button" class="sec" :disabled="sesion.cargando" @click="registrarse">Crear cuenta</button>
+        </div>
+        <p class="error" role="alert" v-if="sesion.aviso">{{ sesion.aviso }}</p>
+        <details class="demo" v-if="demo">
+          <summary><svg class="i" aria-hidden="true"><use href="#i-llave"/></svg>Cuentas de prueba<svg class="i flecha" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+          <ul><li v-for="c in cuentas" :key="c[1]"><span>{{ c[0] }}</span><code>{{ c[1] }}</code></li></ul>
+          <p>Contraseña de todas: <code>secreto123</code></p>
+        </details>
+        <p class="nota"><svg class="i" aria-hidden="true"><use href="#i-candado"/></svg>Tu contraseña se escribe solo en la pantalla segura de inicio de sesión, nunca en esta página.</p>
+      </div>
+    </section>
   </div>
 </template>
 
 <template id="t-tarjeta">
   <article class="envio" :class="'e-' + envio.estado">
-    <div class="cab"><b>Envío #{{ envio.id }}</b><span class="estado">{{ ESTADOS[envio.estado] }}</span></div>
-    <p class="dato"><span>Retira en: </span>{{ envio.origen.calle }}, {{ envio.origen.localidad }}</p>
-    <p class="dato"><span>Entrega en: </span>{{ envio.destino.calle }}, {{ envio.destino.localidad }}</p>
-    <p class="dato"><span>Destinatario: </span>{{ envio.destinatario.nombre }}<template v-if="envio.destinatario.telefono"> ({{ envio.destinatario.telefono }})</template></p>
-    <p class="dato" v-if="envio.descripcion"><span>Detalle: </span>{{ envio.descripcion }}</p>
-    <p class="dato" v-if="envio.cadete"><span>Cadete: </span>{{ envio.cadete.nombre }}</p>
-    <p class="dato" v-if="envio.tiempoEstimadoMinutos"><span>Tiempo estimado: </span>{{ envio.tiempoEstimadoMinutos }} min</p>
-    <p class="dato"><span>Creado: </span>{{ fecha(envio.creadoEn) }}</p>
+    <div class="cuerpo">
+    <div class="cab">
+      <div><b>Envío #{{ envio.id }}</b><small><svg class="i" aria-hidden="true"><use href="#i-reloj"/></svg><span class="sr">Creado: </span>{{ fecha(envio.creadoEn) }}</small></div>
+      <span class="estado"><b>{{ ESTADOS[envio.estado] }}</b><span class="tramos" aria-hidden="true"><i v-for="n in 5" :key="n" :class="{ ok: n <= PASOS[envio.estado] }"></i></span></span>
+    </div>
+    <ol class="ruta">
+      <li class="origen"><small>Retira en</small><span>{{ envio.origen.calle }}</span><em>, {{ envio.origen.localidad }}</em></li>
+      <li class="destino"><small>Entrega en</small><span>{{ envio.destino.calle }}</span><em>, {{ envio.destino.localidad }}</em></li>
+    </ol>
+    <dl class="datos">
+      <div><dt>Destinatario</dt><dd>{{ envio.destinatario.nombre }}<a v-if="envio.destinatario.telefono" :href="'tel:' + envio.destinatario.telefono">{{ envio.destinatario.telefono }}</a></dd></div>
+      <div v-if="envio.cadete"><dt>Cadete</dt><dd>{{ envio.cadete.nombre }}</dd></div>
+      <div v-if="envio.tiempoEstimadoMinutos"><dt>Tiempo estimado</dt><dd>{{ envio.tiempoEstimadoMinutos }} min</dd></div>
+      <div v-if="envio.descripcion"><dt>Detalle</dt><dd>{{ envio.descripcion }}</dd></div>
+    </dl>
+    </div>
     <slot></slot>
-    <button class="sec" :disabled="ui.ocupado" @click="alternar">{{ historial ? 'Ocultar historial' : 'Ver historial' }}</button>
+    <div class="pie">
+      <button class="ghost chico" :aria-expanded="String(!!historial)" :disabled="ui.ocupado" @click="alternar">{{ historial ? 'Ocultar historial' : 'Ver historial' }}<svg class="i" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+    </div>
     <ol class="historial" v-if="historial">
-      <li v-for="(c, i) in historial" :key="i">
+      <li v-for="(c, i) in historial" :key="i" :class="'e-' + c.estado">
         <b>{{ ESTADOS[c.estado] }}</b>
         <small>{{ fecha(c.fecha) }}, por {{ c.realizadoPor.nombre }}</small>
-        <small v-if="c.observacion">{{ c.observacion }}</small>
+        <small class="obs" v-if="c.observacion">{{ c.observacion }}</small>
       </li>
     </ol>
   </article>
@@ -113,46 +416,67 @@ summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
 
 <template id="t-panel">
   <div>
-    <div class="chips" v-if="grupos"><button v-for="(g, i) in grupos" :key="g[0]" class="sec" :aria-pressed="String(i === activo)" @click="$emit('cambiar', i)">{{ g[0] }}</button></div>
-    <div class="fila"><button class="sec" :disabled="lista.cargando" @click="$emit('actualizar')">Actualizar</button></div>
+    <div class="herramientas">
+      <h2 class="seccion" v-if="titulo">{{ titulo }}</h2>
+      <div class="segmentos" role="group" aria-label="Filtrar envíos" v-if="grupos"><button v-for="(g, i) in grupos" :key="g[0]" :aria-pressed="String(i === activo)" @click="$emit('cambiar', i)">{{ g[0] }}</button></div>
+      <div class="lado">
+        <span class="total" v-if="lista.total">{{ lista.total }} {{ lista.total === 1 ? 'envío' : 'envíos' }}</span>
+        <button class="sec chico" :disabled="lista.cargando" @click="$emit('actualizar')"><svg class="i" :class="{ girando: lista.cargando }" aria-hidden="true"><use href="#i-refresh"/></svg>Actualizar</button>
+      </div>
+    </div>
     <p class="error" v-if="lista.error">{{ lista.error }}</p>
-    <p class="vacio" v-else-if="!lista.items.length && !lista.cargando">{{ vacio }}</p>
-    <tarjeta-envio v-for="e in lista.items" :key="e.id" :envio="e"><slot name="acciones" :envio="e"></slot></tarjeta-envio>
-    <button class="sec" v-if="hayMas" :disabled="lista.cargando" @click="$emit('mas')">Ver más envíos</button>
+    <div class="vacio" v-else-if="!lista.items.length && !lista.cargando"><div class="ico"><svg class="i" aria-hidden="true"><use href="#i-caja"/></svg></div><p>{{ vacio }}</p></div>
+    <div class="grilla" v-if="lista.items.length">
+      <tarjeta-envio v-for="e in lista.items" :key="e.id" :envio="e"><slot name="acciones" :envio="e"></slot></tarjeta-envio>
+    </div>
+    <div class="grilla" v-else-if="lista.cargando" aria-hidden="true"><div class="esqueleto" v-for="n in 3" :key="n"></div></div>
+    <button class="sec mas" v-if="hayMas" :disabled="lista.cargando" @click="$emit('mas')">Ver más envíos</button>
   </div>
 </template>
 
 <template id="t-cliente">
   <div>
-    <details open><summary>Nuevo envío</summary>
-      <form class="panel" @submit.prevent="crear">
-        <fieldset v-for="d in direcciones" :key="d[0]"><legend>{{ d[1] }}</legend>
-          <label :for="d[0] + '_calle'">Calle y número</label>
-          <input :id="d[0] + '_calle'" required maxlength="200" v-model="form[d[0]].calle">
-          <div class="dos">
-            <div><label :for="d[0] + '_loc'">Localidad</label><input :id="d[0] + '_loc'" required maxlength="100" v-model="form[d[0]].localidad"></div>
-            <div><label :for="d[0] + '_ref'">Referencias (timbre, piso)</label><input :id="d[0] + '_ref'" maxlength="300" v-model="form[d[0]].referencias"></div>
-          </div>
-        </fieldset>
-        <fieldset><legend>Quién recibe</legend>
-          <div class="dos">
-            <div><label for="n_nombre">Nombre</label><input id="n_nombre" required maxlength="100" v-model="form.destinatario.nombre"></div>
-            <div><label for="n_tel">Teléfono de contacto</label><input id="n_tel" maxlength="30" v-model="form.destinatario.telefono"></div>
-          </div>
-          <label for="descripcion">Qué se envía</label>
-          <input id="descripcion" maxlength="300" v-model="form.descripcion">
-        </fieldset>
-        <button type="submit" :disabled="ui.ocupado">Crear envío</button>
-      </form>
-    </details>
-    <h2>Mis envíos</h2>
-    <panel-envios :lista="lista" :hay-mas="hayMas" vacio="Todavía no creaste envíos. Completá el formulario para pedir el primero." @actualizar="cargar" @mas="masEnvios"></panel-envios>
+    <div class="cabecera"><div>
+      <p class="kicker">Hola, {{ sesion.usuario.nombre }}</p>
+      <h1>Pedí y seguí tus envíos</h1>
+      <p class="bajada">Cargá dónde se retira y dónde se entrega; te avisamos cada vez que cambia de estado.</p>
+    </div></div>
+    <div class="cliente">
+      <details open class="nuevo"><summary><span class="mas-ico"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg></span>Nuevo envío<svg class="i flecha" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <form @submit.prevent="crear">
+          <fieldset class="paso" v-for="(d, i) in direcciones" :key="d[0]"><legend><span class="num">{{ i + 1 }}</span>{{ d[1] }}</legend>
+            <label :for="d[0] + '_calle'">Calle y número</label>
+            <input :id="d[0] + '_calle'" required maxlength="200" v-model="form[d[0]].calle">
+            <div class="dos">
+              <div><label :for="d[0] + '_loc'">Localidad</label><input :id="d[0] + '_loc'" required maxlength="100" v-model="form[d[0]].localidad"></div>
+              <div><label :for="d[0] + '_ref'">Referencias <span class="opc">(timbre, piso)</span></label><input :id="d[0] + '_ref'" maxlength="300" v-model="form[d[0]].referencias"></div>
+            </div>
+          </fieldset>
+          <fieldset class="paso"><legend><span class="num">3</span>Quién recibe</legend>
+            <div class="dos">
+              <div><label for="n_nombre">Nombre</label><input id="n_nombre" required maxlength="100" v-model="form.destinatario.nombre"></div>
+              <div><label for="n_tel">Teléfono <span class="opc">(opcional)</span></label><input id="n_tel" type="tel" maxlength="30" v-model="form.destinatario.telefono"></div>
+            </div>
+            <label for="descripcion">Qué se envía <span class="opc">(opcional)</span></label>
+            <input id="descripcion" maxlength="300" placeholder="Ej.: sobre con documentación" v-model="form.descripcion">
+          </fieldset>
+          <button type="submit" :disabled="ui.ocupado">Crear envío<svg class="i" aria-hidden="true"><use href="#i-flecha"/></svg></button>
+        </form>
+      </details>
+      <section>
+        <panel-envios titulo="Mis envíos" :lista="lista" :hay-mas="hayMas" vacio="Todavía no creaste envíos. Completá el formulario para pedir el primero." @actualizar="cargar" @mas="masEnvios"></panel-envios>
+      </section>
+    </div>
   </div>
 </template>
 
 <template id="t-operador">
   <div>
-    <h2>Envíos</h2>
+    <div class="cabecera"><div>
+      <p class="kicker">Panel de operación</p>
+      <h1>Envíos</h1>
+      <p class="bajada">Asigná cadetes a los pedidos nuevos y seguí los que están en la calle.</p>
+    </div></div>
     <panel-envios :lista="lista" :grupos="grupos" :activo="grupo" :hay-mas="hayMas" vacio="No hay envíos en esta categoría." @cambiar="grupo = $event" @actualizar="actualizar" @mas="masEnvios">
       <template #acciones="{ envio }">
         <p class="error" v-if="puedeAsignar(envio) && !cadetes.length">No hay cadetes activos para asignar.</p>
@@ -160,7 +484,7 @@ summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
           <select :aria-label="'Cadete para el envío #' + envio.id" :value="elegido[envio.id] ?? envio.cadete?.id ?? cadetes[0].id" @change="elegido[envio.id] = Number($event.target.value)">
             <option v-for="c in cadetes" :key="c.id" :value="c.id">{{ c.nombre }} ({{ c.enviosActivos }} activos)</option>
           </select>
-          <button class="act" :disabled="ui.ocupado" @click="asignar(envio)">{{ envio.estado === 'ASIGNADO' ? 'Reasignar' : 'Asignar cadete' }}</button>
+          <button class="act" :disabled="ui.ocupado" @click="asignar(envio)"><svg class="i" aria-hidden="true"><use href="#i-moto"/></svg>{{ envio.estado === 'ASIGNADO' ? 'Reasignar' : 'Asignar cadete' }}</button>
         </div>
       </template>
     </panel-envios>
@@ -169,16 +493,20 @@ summary{font-size:1.3rem;font-weight:700;cursor:pointer;margin:1.5rem 0 .75rem}
 
 <template id="t-cadete">
   <div>
-    <h2>Mis envíos</h2>
+    <div class="cabecera"><div>
+      <p class="kicker">Hola, {{ primerNombre(sesion.usuario.nombre) }}</p>
+      <h1>Tus entregas</h1>
+      <p class="bajada">Marcá cada paso a medida que avanzás: el cliente lo ve al instante.</p>
+    </div></div>
     <panel-envios :lista="lista" :grupos="grupos" :activo="grupo" :hay-mas="hayMas" vacio="No tenés envíos en esta categoría." @cambiar="grupo = $event" @actualizar="cargar" @mas="masEnvios">
       <template #acciones="{ envio }">
         <div class="fila" v-if="motivo.id === envio.id">
           <textarea aria-label="Motivo" rows="3" maxlength="300" placeholder="Contá qué pasó (por ejemplo: nadie atendió en el domicilio)" v-model="motivo.texto"></textarea>
-          <button class="act" :disabled="ui.ocupado" @click="confirmarNoEntrega(envio)">Confirmar no entregado</button>
-          <button class="act sec" @click="motivo.id = null">Cancelar</button>
+          <button class="act peligro" :disabled="ui.ocupado" @click="confirmarNoEntrega(envio)">Confirmar no entregado</button>
+          <button class="act sec" @click="motivo.id = null"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Cancelar</button>
         </div>
         <div class="fila" v-else-if="acciones(envio).length">
-          <button v-for="a in acciones(envio)" :key="a[0]" class="act" :class="{ sec: a[0] === 'NO_ENTREGADO' }" :disabled="ui.ocupado" @click="a[0] === 'NO_ENTREGADO' ? pedirMotivo(envio) : cambiar(envio, a[0])">{{ a[1] }}</button>
+          <button v-for="a in acciones(envio)" :key="a[0]" class="act" :class="{ sec: a[0] === 'NO_ENTREGADO', peligro: a[0] === 'NO_ENTREGADO' }" :disabled="ui.ocupado" @click="a[0] === 'NO_ENTREGADO' ? pedirMotivo(envio) : cambiar(envio, a[0])"><svg class="i" aria-hidden="true"><use :href="'#i-' + ICONOS[a[0]]"/></svg>{{ a[1] }}</button>
         </div>
       </template>
     </panel-envios>
@@ -379,13 +707,21 @@ function useCadete() {
 }
 
 /* ====================== VISTA: componentes que unen cada plantilla con su vistamodelo ====================== */
+// Ayudas solo de presentación (iniciales del avatar, saludo, ícono de cada acción del cadete).
+const palabras = n => (n || '').trim().split(/\s+/).filter(Boolean);
+const iniciales = n => palabras(n).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+const primerNombre = n => palabras(n)[0] || '';
+const ICONOS = { RETIRADO: 'caja', EN_CAMINO: 'moto', ENTREGADO: 'check', NO_ENTREGADO: 'alerta' };
+// Cuántos tramos de la barra de estado se pintan (No entregado llega al final, pero el último va en rojo).
+const PASOS = { PENDIENTE: 1, ASIGNADO: 2, RETIRADO: 3, EN_CAMINO: 4, ENTREGADO: 5, NO_ENTREGADO: 5 };
+
 const app = createApp({ template: '#t-raiz', setup: () => ({ sesion, salir, miCuenta }) });
-Object.assign(app.config.globalProperties, { ui, ESTADOS, ROLES, fecha });
+Object.assign(app.config.globalProperties, { ui, sesion, ESTADOS, ROLES, ICONOS, PASOS, fecha, iniciales, primerNombre });
 app.component('vista-login', { template: '#t-login', setup: useLogin });
 app.component('vista-cliente', { template: '#t-cliente', setup: useCliente });
 app.component('vista-operador', { template: '#t-operador', setup: useOperador });
 app.component('vista-cadete', { template: '#t-cadete', setup: useCadete });
-app.component('panel-envios', { template: '#t-panel', props: ['lista', 'grupos', 'activo', 'vacio', 'hayMas'], emits: ['cambiar', 'actualizar', 'mas'] });
+app.component('panel-envios', { template: '#t-panel', props: ['lista', 'grupos', 'activo', 'vacio', 'hayMas', 'titulo'], emits: ['cambiar', 'actualizar', 'mas'] });
 app.component('tarjeta-envio', {
   template: '#t-tarjeta', props: ['envio'],
   setup(props) {

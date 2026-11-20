@@ -8,7 +8,8 @@ server {
 
     # connect-src: la API y Keycloak (keycloak-js pide los tokens con fetch).
     # 'unsafe-eval' lo exige Vue para compilar las plantillas en el navegador.
-    add_header Content-Security-Policy "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; connect-src ${API_ORIGIN} ${KEYCLOAK_URL}; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" always;
+    # style-src/font-src: tipografía de Google Fonts (si se bloquea, la página cae a la fuente del sistema).
+    add_header Content-Security-Policy "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src ${API_ORIGIN} ${KEYCLOAK_URL}; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" always;
     add_header Referrer-Policy "no-referrer" always;
     add_header X-Content-Type-Options "nosniff" always;
 
